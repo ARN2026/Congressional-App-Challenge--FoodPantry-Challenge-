@@ -113,38 +113,11 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // Global variable to store active search circle
+        // Global variables to store active search circle and dynamic markers layer group
         var searchCircle = null;
+        var markersLayer = L.layerGroup().addTo(map);
 
-        // 3. Sample List of Food Pantries & Water Stations
-        var locations = [
-            {
-                name: "Irving Cares Food Pantry",
-                lat: 32.8105,
-                lng: -96.9535,
-                type: "Food & Water",
-                hours: "Mon-Fri: 9am - 3pm"
-            },
-            {
-                name: "Community Water Station",
-                lat: 32.8300,
-                lng: -96.9600,
-                type: "Water Refill",
-                hours: "24/7"
-            }
-        ];
-
-        // 4. Add Pin Markers to the Map
-        locations.forEach(function(place) {
-            var marker = L.marker([place.lat, place.lng]).addTo(map);
-            marker.bindPopup(
-                '<b>' + place.name + '</b><br>' +
-                '<strong>Type:</strong> ' + place.type + '<br>' +
-                '<strong>Hours:</strong> ' + place.hours
-            );
-        });
-
-        // 5. Search Location Function with 3-Mile Radius Circle & Auto-Zoom
+        // 3. Search Location Function with 5-Mile Circle & Real-Time Overpass API Data
         function searchLocation() {
             var query = document.getElementById('zipInput').value;
             if (!query) {
@@ -168,24 +141,20 @@
                             map.removeLayer(searchCircle);
                         }
 
-                        // Draw a 3-mile radius search circle (3 miles = ~4828 meters)
-                        // If you want 5 miles instead, change 4828 to 8046
+                        // Draw a 5-mile radius search circle (8046 meters)
                         searchCircle = L.circle(center, {
-                            radius: 4828,         // Radius in meters (3 miles)
-                            color: "#1b365d",     // Dark blue outline
+                            radius: 8046,
+                            color: "#1b365d",
                             weight: 2,
-                            fillColor: "#4a90e2", // Light blue fill
-                            fillOpacity: 0.2      // Semi-transparent
+                            fillColor: "#4a90e2",
+                            fillOpacity: 0.2
                         }).addTo(map);
 
-                        // Zoom map neatly to fit the 3-mile circle
+                        // Zoom map neatly to fit the circle
                         map.fitBounds(searchCircle.getBounds());
 
-                        // Popup at the center
-                        L.popup()
-                            .setLatLng(center)
-                            .setContent("<b>Search Center:</b> " + result.display_name + "<br><i>Showing results within 3 miles</i>")
-                            .openOn(map);
+                        // Fetch real food and water locations inside this 5-mile radius from Overpass API
+                        fetchOverpassData(lat, lon, 8046);
 
                     } else {
                         alert("Location not found in the US. Please try a valid ZIP code or city.");
@@ -194,6 +163,66 @@
                 .catch(error => {
                     console.error('Error fetching location:', error);
                     alert("Error connecting to search service.");
+                });
+        }
+
+        // 4. Function to query OpenStreetMap via Overpass API
+        function fetchOverpassData(lat, lon, radiusMeters) {
+            // Clear old markers
+            markersLayer.clearLayers();
+
+            // Overpass query for food banks, pantries, social facilities, and drinking water within radius
+            var overpassQuery = `
+                [out:json][timeout:25];
+                (
+                  node["amenity"="social_facility"]["social_facility"="food_bank"](around:${radiusMeters},${lat},${lon});
+                  way["amenity"="social_facility"]["social_facility"="food_bank"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="food_pantry"](around:${radiusMeters},${lat},${lon});
+                  way["amenity"="food_pantry"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
+                  way["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="water_point"](around:${radiusMeters},${lat},${lon});
+                );
+                out body;
+                >;
+                out skel qt;
+            `;
+
+            var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.elements && data.elements.length > 0) {
+                        data.elements.forEach(element => {
+                            if (element.lat && element.lon) {
+                                var name = (element.tags && element.tags.name) ? element.tags.name : "Community Resource";
+                                var type = "Food / Water Resource";
+                                if (element.tags && element.tags.amenity === "drinking_water") {
+                                    type = "Drinking Water";
+                                } else if (element.tags && element.tags.social_facility === "food_bank") {
+                                    type = "Food Bank / Pantry";
+                                }
+
+                                var marker = L.marker([element.lat, element.lon]);
+                                marker.bindPopup(
+                                    '<b>' + name + '</b><br>' +
+                                    '<strong>Type:</strong> ' + type + '<br>' +
+                                    '<em>Fetched from OpenStreetMap</em>'
+                                );
+                                markersLayer.addLayer(marker);
+                            }
+                        });
+                    } else {
+                        // Fallback message if no tagged resources are returned in that specific rural/suburban pocket
+                        L.popup()
+                            .setLatLng([lat, lon])
+                            .setContent("<b>Search Center:</b> " + query + "<br><i>No specific tagged food/water nodes found in this exact 5mi radius. Try a major metro area!</i>")
+                            .openOn(map);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching Overpass data:', error);
                 });
         }
     </script>
