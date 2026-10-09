@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Community Food & Water Locator</title>
-    <title>By: Aishwarya Reddy Nalla</title>
+    <title>Community Food & Water Locator - By Aishwarya Reddy Nalla</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -114,8 +113,8 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // Global variable to store active search perimeter shape
-        var searchRectangle = null;
+        // Global variable to store active search circle
+        var searchCircle = null;
 
         // 3. Sample List of Food Pantries & Water Stations
         var locations = [
@@ -145,7 +144,7 @@
             );
         });
 
-        // 5. Search Location Function with Perimeter & Auto-Zoom
+        // 5. Search Location Function with 5-mile Radius Circle & Auto-Zoom
         function searchLocation() {
             var query = document.getElementById('zipInput').value;
             if (!query) {
@@ -160,33 +159,31 @@
                 .then(data => {
                     if (data && data.length > 0) {
                         var result = data[0];
-                        
-                        // Extract bounding box coordinates [latmin, latmax, lonmin, lonmax]
-                        var bbox = result.boundingbox;
-                        var southWest = L.latLng(parseFloat(bbox[0]), parseFloat(bbox[2]));
-                        var northEast = L.latLng(parseFloat(bbox[1]), parseFloat(bbox[3]));
-                        var bounds = L.latLngBounds(southWest, northEast);
+                        var lat = parseFloat(result.lat);
+                        var lon = parseFloat(result.lon);
+                        var center = [lat, lon];
 
-                        // Remove previous search outline if it exists
-                        if (searchRectangle) {
-                            map.removeLayer(searchRectangle);
+                        // Remove previous search circle if it exists
+                        if (searchCircle) {
+                            map.removeLayer(searchCircle);
                         }
 
-                        // Draw the dark blue outline with light blue fill inside
-                        searchRectangle = L.rectangle(bounds, {
+                        // Draw a 5-mile radius search circle (5 miles = ~8046 meters)
+                        searchCircle = L.circle(center, {
+                            radius: 8046,         // Radius in meters (5 miles)
                             color: "#1b365d",     // Dark blue outline
-                            weight: 3,
-                            fillColor: "#4a90e2", // Lighter blue fill
-                            fillOpacity: 0.25     // Semi-transparent
+                            weight: 2,
+                            fillColor: "#4a90e2", // Light blue fill
+                            fillOpacity: 0.2      // Semi-transparent
                         }).addTo(map);
 
-                        // Automatically zoom and center map to fit the area bounds
-                        map.fitBounds(bounds);
+                        // Zoom map neatly to fit the 5-mile circle
+                        map.fitBounds(searchCircle.getBounds());
 
-                        // Optional info popup at center
+                        // Popup at the center
                         L.popup()
-                            .setLatLng(map.getCenter())
-                            .setContent("<b>Area:</b> " + result.display_name)
+                            .setLatLng(center)
+                            .setContent("<b>Search Center:</b> " + result.display_name + "<br><i>Showing results within 5 miles</i>")
                             .openOn(map);
 
                     } else {
