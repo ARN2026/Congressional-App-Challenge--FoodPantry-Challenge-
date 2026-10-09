@@ -153,10 +153,10 @@
                         // Zoom map neatly to fit the circle
                         map.fitBounds(searchCircle.getBounds());
 
-                        // Show the center popup with loading notice
+                        // Show center search popup with loading notice
                         L.popup()
                             .setLatLng(center)
-                            .setContent("<b>Searched area for:</b> " + query + "<br><i>Fetched within 5 miles</i><br><span style='color: #10, 10, 10; font-weight: bold;'>Please wait for results to load!</span>")
+                            .setContent("<b>Searched area for:</b> " + query + "<br><i>Fetched within 5 miles</i><br><span style='color: #e67e22; font-weight: bold;'>Please wait for results to load!</span>")
                             .openOn(map);
 
                         // Fetch real resources inside this 5-mile radius
@@ -172,23 +172,23 @@
                 });
         }
 
-        // 4. Function to query OpenStreetMap via Overpass API
+        // 4. Function to query OpenStreetMap via Overpass API using NWR (Nodes, Ways, Relations)
         function fetchOverpassData(lat, lon, radiusMeters) {
             markersLayer.clearLayers();
 
             var overpassQuery = `
                 [out:json][timeout:25];
                 (
-                  node["amenity"="social_facility"](around:${radiusMeters},${lat},${lon});
-                  node["social_facility"="food_bank"](around:${radiusMeters},${lat},${lon});
-                  node["amenity"="food_pantry"](around:${radiusMeters},${lat},${lon});
-                  node["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
-                  node["amenity"="water_point"](around:${radiusMeters},${lat},${lon});
-                  node["amenity"="place_of_worship"](around:${radiusMeters},${lat},${lon});
-                  node["amenity"="shelter"](around:${radiusMeters},${lat},${lon});
-                  node["shop"="supermarket"](around:${radiusMeters},${lat},${lon});
+                  nwr["amenity"="social_facility"](around:${radiusMeters},${lat},${lon});
+                  nwr["social_facility"="food_bank"](around:${radiusMeters},${lat},${lon});
+                  nwr["amenity"="food_pantry"](around:${radiusMeters},${lat},${lon});
+                  nwr["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
+                  nwr["amenity"="water_point"](around:${radiusMeters},${lat},${lon});
+                  nwr["amenity"="shelter"](around:${radiusMeters},${lat},${lon});
+                  nwr["shop"="supermarket"](around:${radiusMeters},${lat},${lon});
+                  nwr["shop"="convenience"](around:${radiusMeters},${lat},${lon});
                 );
-                out body;
+                out body center;
             `;
 
             var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
@@ -198,9 +198,32 @@
                 .then(data => {
                     if (data && data.elements && data.elements.length > 0) {
                         data.elements.forEach(element => {
-                            if (element.lat && element.lon) {
+                            // Extract latitude and longitude (supporting both direct nodes and way/relation centers)
+                            var elLat = element.lat || (element.center ? element.center.lat : null);
+                            var elLon = element.lon || (element.center ? element.center.lon : null);
+
+                            if (elLat && elLon) {
                                 var tags = element.tags || {};
-                                var name = tags.name ? tags.name : "Community Resource";
+                                
+                                // Determine Service & Descriptive Fallback Name
+                                var service = "Community Resource";
+                                var defaultName = "Public Community Facility";
+
+                                if (tags.amenity === "drinking_water" || tags.amenity === "water_point") {
+                                    service = "Water";
+                                    defaultName = "Public Drinking Water Station";
+                                } else if (tags.amenity === "food_pantry" || tags.social_facility === "food_bank") {
+                                    service = "Food";
+                                    defaultName = "Community Food Pantry / Bank";
+                                } else if (tags.shop === "supermarket" || tags.shop === "convenience") {
+                                    service = "Food";
+                                    defaultName = "Local Grocery / Supermarket";
+                                } else if (tags.amenity === "shelter" || tags.social_facility === "shelter") {
+                                    service = "Shelter";
+                                    defaultName = "Community Shelter";
+                                }
+
+                                var name = tags.name ? tags.name : defaultName;
                                 
                                 // Build Address string from OSM tags if available
                                 var houseNo = tags["addr:housenumber"] || "";
@@ -209,29 +232,20 @@
                                 var state = tags["addr:state"] || "";
                                 var postcode = tags["addr:postcode"] || "";
                                 
-                                var address = "Address not listed";
-                                if (street) {
-                                    address = (houseNo ? houseNo + " " : "") + street + (city ? ", " + city : "") + (state ? ", " + state : "") + (postcode ? " " + postcode : "");
+                                var address = (houseNo ? houseNo + " " : "") + street + (city ? ", " + city : "") + (state ? ", " + state : "") + (postcode ? " " + postcode : "");
+                                if (!street) {
+                                    address = "GPS Location (Tap directions link below)";
                                 }
 
-                                // Determine Service Category
-                                var service = "Community Resource / Support";
-                                if (tags.amenity === "drinking_water" || tags.amenity === "water_point") {
-                                    service = "Water";
-                                } else if (tags.amenity === "food_pantry" || tags.social_facility === "food_bank" || tags.shop === "supermarket") {
-                                    service = "Food";
-                                } else if (tags.amenity === "shelter" || tags.social_facility === "shelter") {
-                                    service = "Shelter";
-                                } else if (tags.amenity === "place_of_worship") {
-                                    service = "Place of Worship / Community Support";
-                                }
+                                var navUrl = "https://www.google.com/maps/dir/?api=1&destination=" + elLat + "," + elLon;
 
-                                var marker = L.marker([element.lat, element.lon]);
+                                var marker = L.marker([elLat, elLon]);
                                 marker.bindPopup(
                                     '<b>Name:</b> ' + name + '<br>' +
                                     '<b>Address:</b> ' + address + '<br>' +
-                                    '<b>Location:</b> ' + element.lat.toFixed(5) + ', ' + element.lon.toFixed(5) + '<br>' +
-                                    '<b>Service:</b> ' + service
+                                    '<b>Location:</b> ' + elLat.toFixed(5) + ', ' + elLon.toFixed(5) + '<br>' +
+                                    '<b>Service:</b> ' + service + '<br>' +
+                                    '<a href="' + navUrl + '" target="_blank" style="color: #2980b9; font-weight: bold; text-decoration: underline;">Open Directions in Google Maps</a>'
                                 );
                                 markersLayer.addLayer(marker);
                             }
