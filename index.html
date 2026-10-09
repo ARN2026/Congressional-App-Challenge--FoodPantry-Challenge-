@@ -159,7 +159,7 @@
                             .setContent("<b>Searched area for:</b> " + query + "<br><i>Fetched within 5 miles</i><br><span style='color: #e67e22; font-weight: bold;'>Please wait for results to load!</span>")
                             .openOn(map);
 
-                        // Fetch real resources inside this 5-mile radius
+                        // Fetch real humanitarian resources inside this 5-mile radius
                         fetchOverpassData(lat, lon, 8046);
 
                     } else {
@@ -172,7 +172,7 @@
                 });
         }
 
-        // 4. Function to query OpenStreetMap via Overpass API
+        // 4. Function to query OpenStreetMap strictly for humanitarian/non-profit aid
         function fetchOverpassData(lat, lon, radiusMeters) {
             markersLayer.clearLayers();
 
@@ -185,8 +185,6 @@
                   node["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
                   node["amenity"="water_point"](around:${radiusMeters},${lat},${lon});
                   node["amenity"="shelter"](around:${radiusMeters},${lat},${lon});
-                  node["shop"="supermarket"](around:${radiusMeters},${lat},${lon});
-                  node["shop"="convenience"](around:${radiusMeters},${lat},${lon});
                 );
                 out body;
             `;
@@ -210,9 +208,6 @@
                                 } else if (tags.amenity === "food_pantry" || tags.social_facility === "food_bank") {
                                     service = "Food";
                                     defaultName = "Community Food Pantry / Bank";
-                                } else if (tags.shop === "supermarket" || tags.shop === "convenience") {
-                                    service = "Food";
-                                    defaultName = "Local Grocery / Supermarket";
                                 } else if (tags.amenity === "shelter" || tags.social_facility === "shelter") {
                                     service = "Shelter";
                                     defaultName = "Community Shelter";
