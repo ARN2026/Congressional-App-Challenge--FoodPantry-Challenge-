@@ -10,8 +10,8 @@
 
     <style>
         .leaflet-control-attribution a[href*="leafletjs.com"] {
-    background-image: none !important;
-}
+            background-image: none !important;
+        }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -37,6 +37,12 @@
     <header>
         <h1>Food & Water Locator</h1>
         <p>Find nearby pantries and clean water sources</p>
+        
+        <!-- Search Bar -->
+        <div style="margin-top: 10px;">
+            <input type="text" id="zipInput" placeholder="Enter US ZIP Code or City..." style="padding: 6px; width: 220px; border-radius: 4px; border: none;">
+            <button onclick="searchLocation()" style="padding: 6px 12px; background-color: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer;">Search</button>
+        </div>
     </header>
 
     <div id="map"></div>
@@ -82,6 +88,42 @@
                 '<strong>Hours:</strong> ' + place.hours
             );
         });
+
+        // 5. Search Location Function (Geocoding via Nominatim)
+        function searchLocation() {
+            var query = document.getElementById('zipInput').value;
+            if (!query) {
+                alert("Please enter a ZIP code or location.");
+                return;
+            }
+
+            // Append ", USA" to ensure Nominatim searches within the United States
+            var searchUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query + ', USA');
+
+            fetch(searchUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        var lat = parseFloat(data[0].lat);
+                        var lon = parseFloat(data[0].lon);
+
+                        // Move map to the searched location
+                        map.setView([lat, lon], 13);
+
+                        // Drop a popup at the searched location center
+                        L.popup()
+                            .setLatLng([lat, lon])
+                            .setContent("<b>Searched Area:</b> " + query)
+                            .openOn(map);
+                    } else {
+                        alert("Location not found in the US. Please try a valid ZIP code.");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching location:', error);
+                    alert("Error connecting to search service.");
+                });
+        }
     </script>
 </body>
 </html>
