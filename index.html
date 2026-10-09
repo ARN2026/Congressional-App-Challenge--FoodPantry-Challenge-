@@ -160,7 +160,7 @@
                             .openOn(map);
 
                         // Fetch real humanitarian resources inside this 5-mile radius
-                        fetchOverpassData(lat, lon, 8046);
+                        fetchOverpassData(lat, lon, 8046, query);
 
                     } else {
                         alert("Location not found in the US. Please try a valid ZIP code or city.");
@@ -172,8 +172,8 @@
                 });
         }
 
-        // 4. Function to query OpenStreetMap strictly for humanitarian/non-profit aid
-        function fetchOverpassData(lat, lon, radiusMeters) {
+        // 4. Function to query OpenStreetMap strictly for non-profit and community support hubs
+        function fetchOverpassData(lat, lon, radiusMeters, searchQuery) {
             markersLayer.clearLayers();
 
             var overpassQuery = `
@@ -185,6 +185,8 @@
                   node["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
                   node["amenity"="water_point"](around:${radiusMeters},${lat},${lon});
                   node["amenity"="shelter"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="place_of_worship"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="community_centre"](around:${radiusMeters},${lat},${lon});
                 );
                 out body;
             `;
@@ -211,6 +213,12 @@
                                 } else if (tags.amenity === "shelter" || tags.social_facility === "shelter") {
                                     service = "Shelter";
                                     defaultName = "Community Shelter";
+                                } else if (tags.amenity === "place_of_worship") {
+                                    service = "Community Support / Food Distribution";
+                                    defaultName = "Local House of Worship";
+                                } else if (tags.amenity === "community_centre") {
+                                    service = "Community Aid & Support";
+                                    defaultName = "Community Center";
                                 }
 
                                 var name = tags.name ? tags.name : defaultName;
@@ -240,6 +248,12 @@
                                 markersLayer.addLayer(marker);
                             }
                         });
+                    } else {
+                        // Fallback notice if an area has no matching humanitarian nodes
+                        L.popup()
+                            .setLatLng([lat, lon])
+                            .setContent("<b>Search Center:</b> " + searchQuery + "<br><i>No non-profit aid nodes mapped within this 5mi radius. Try a major metro area!</i>")
+                            .openOn(map);
                     }
                 })
                 .catch(error => {
