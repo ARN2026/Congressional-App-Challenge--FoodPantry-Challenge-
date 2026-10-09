@@ -144,7 +144,7 @@
             );
         });
 
-        // 5. Search Location Function with 5-mile Radius Circle & Auto-Zoom
+        // 5. Search Location Function with 3-Mile Radius Circle & Auto-Zoom
         function searchLocation() {
             var query = document.getElementById('zipInput').value;
             if (!query) {
@@ -168,22 +168,23 @@
                             map.removeLayer(searchCircle);
                         }
 
-                        // Draw a 5-mile radius search circle (5 miles = ~8046 meters)
+                        // Draw a 3-mile radius search circle (3 miles = ~4828 meters)
+                        // If you want 5 miles instead, change 4828 to 8046
                         searchCircle = L.circle(center, {
-                            radius: 8046,         // Radius in meters (5 miles)
+                            radius: 4828,         // Radius in meters (3 miles)
                             color: "#1b365d",     // Dark blue outline
                             weight: 2,
                             fillColor: "#4a90e2", // Light blue fill
                             fillOpacity: 0.2      // Semi-transparent
                         }).addTo(map);
 
-                        // Zoom map neatly to fit the 5-mile circle
+                        // Zoom map neatly to fit the 3-mile circle
                         map.fitBounds(searchCircle.getBounds());
 
                         // Popup at the center
                         L.popup()
                             .setLatLng(center)
-                            .setContent("<b>Search Center:</b> " + result.display_name + "<br><i>Showing results within 5 miles</i>")
+                            .setContent("<b>Search Center:</b> " + result.display_name + "<br><i>Showing results within 3 miles</i>")
                             .openOn(map);
 
                     } else {
