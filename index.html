@@ -172,23 +172,23 @@
                 });
         }
 
-        // 4. Function to query OpenStreetMap via Overpass API using NWR (Nodes, Ways, Relations)
+        // 4. Function to query OpenStreetMap via Overpass API
         function fetchOverpassData(lat, lon, radiusMeters) {
             markersLayer.clearLayers();
 
             var overpassQuery = `
                 [out:json][timeout:25];
                 (
-                  nwr["amenity"="social_facility"](around:${radiusMeters},${lat},${lon});
-                  nwr["social_facility"="food_bank"](around:${radiusMeters},${lat},${lon});
-                  nwr["amenity"="food_pantry"](around:${radiusMeters},${lat},${lon});
-                  nwr["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
-                  nwr["amenity"="water_point"](around:${radiusMeters},${lat},${lon});
-                  nwr["amenity"="shelter"](around:${radiusMeters},${lat},${lon});
-                  nwr["shop"="supermarket"](around:${radiusMeters},${lat},${lon});
-                  nwr["shop"="convenience"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="social_facility"](around:${radiusMeters},${lat},${lon});
+                  node["social_facility"="food_bank"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="food_pantry"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="water_point"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="shelter"](around:${radiusMeters},${lat},${lon});
+                  node["shop"="supermarket"](around:${radiusMeters},${lat},${lon});
+                  node["shop"="convenience"](around:${radiusMeters},${lat},${lon});
                 );
-                out body center;
+                out body;
             `;
 
             var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
@@ -198,10 +198,7 @@
                 .then(data => {
                     if (data && data.elements && data.elements.length > 0) {
                         data.elements.forEach(element => {
-                            var elLat = element.lat || (element.center ? element.center.lat : null);
-                            var elLon = element.lon || (element.center ? element.center.lon : null);
-
-                            if (elLat && elLon) {
+                            if (element.lat && element.lon) {
                                 var tags = element.tags || {};
                                 
                                 var service = "Community Resource";
@@ -234,14 +231,14 @@
                                     address = "GPS Location (Tap walking directions below)";
                                 }
 
-                                // Force walking mode directly in the Google Maps URL
-                                var navUrl = "https://www.google.com/maps/dir/?api=1&destination=" + elLat + "," + elLon + "&travelmode=walking";
+                                // Google Maps directions link forced to walking mode
+                                var navUrl = "https://www.google.com/maps/dir/?api=1&destination=" + element.lat + "," + element.lon + "&travelmode=walking";
 
-                                var marker = L.marker([elLat, elLon]);
+                                var marker = L.marker([element.lat, element.lon]);
                                 marker.bindPopup(
                                     '<b>Name:</b> ' + name + '<br>' +
                                     '<b>Address:</b> ' + address + '<br>' +
-                                    '<b>Location:</b> ' + elLat.toFixed(5) + ', ' + elLon.toFixed(5) + '<br>' +
+                                    '<b>Location:</b> ' + element.lat.toFixed(5) + ', ' + element.lon.toFixed(5) + '<br>' +
                                     '<b>Service:</b> ' + service + '<br>' +
                                     '<a href="' + navUrl + '" target="_blank" style="color: #27ae60; font-weight: bold; text-decoration: underline;">Open Walking Directions</a>'
                                 );
