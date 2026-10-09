@@ -154,7 +154,7 @@
                         map.fitBounds(searchCircle.getBounds());
 
                         // Fetch real food and water locations inside this 5-mile radius from Overpass API
-                        fetchOverpassData(lat, lon, 8046);
+                        fetchOverpassData(lat, lon, 8046, query);
 
                     } else {
                         alert("Location not found in the US. Please try a valid ZIP code or city.");
@@ -167,21 +167,20 @@
         }
 
         // 4. Function to query OpenStreetMap via Overpass API
-        function fetchOverpassData(lat, lon, radiusMeters) {
-            // Clear old markers
+        function fetchOverpassData(lat, lon, radiusMeters, searchQuery) {
             markersLayer.clearLayers();
 
-            // Overpass query for food banks, pantries, social facilities, and drinking water within radius
+            // Broadened Overpass query to catch social facilities, food banks, pantries, and community spaces
             var overpassQuery = `
                 [out:json][timeout:25];
                 (
-                  node["amenity"="social_facility"]["social_facility"="food_bank"](around:${radiusMeters},${lat},${lon});
-                  way["amenity"="social_facility"]["social_facility"="food_bank"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="social_facility"](around:${radiusMeters},${lat},${lon});
+                  way["amenity"="social_facility"](around:${radiusMeters},${lat},${lon});
+                  node["social_facility"="food_bank"](around:${radiusMeters},${lat},${lon});
                   node["amenity"="food_pantry"](around:${radiusMeters},${lat},${lon});
-                  way["amenity"="food_pantry"](around:${radiusMeters},${lat},${lon});
                   node["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
-                  way["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
                   node["amenity"="water_point"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="place_of_worship"](around:${radiusMeters},${lat},${lon});
                 );
                 out body;
                 >;
@@ -197,27 +196,28 @@
                         data.elements.forEach(element => {
                             if (element.lat && element.lon) {
                                 var name = (element.tags && element.tags.name) ? element.tags.name : "Community Resource";
-                                var type = "Food / Water Resource";
+                                var type = "Community / Food / Water";
                                 if (element.tags && element.tags.amenity === "drinking_water") {
                                     type = "Drinking Water";
                                 } else if (element.tags && element.tags.social_facility === "food_bank") {
-                                    type = "Food Bank / Pantry";
+                                    type = "Food Bank";
+                                } else if (element.tags && element.tags.amenity === "place_of_worship") {
+                                    type = "Place of Worship (Potential Pantry)";
                                 }
 
                                 var marker = L.marker([element.lat, element.lon]);
                                 marker.bindPopup(
                                     '<b>' + name + '</b><br>' +
                                     '<strong>Type:</strong> ' + type + '<br>' +
-                                    '<em>Fetched from OpenStreetMap</em>'
+                                    '<em>OpenStreetMap Live Data</em>'
                                 );
                                 markersLayer.addLayer(marker);
                             }
                         });
                     } else {
-                        // Fallback message if no tagged resources are returned in that specific rural/suburban pocket
                         L.popup()
                             .setLatLng([lat, lon])
-                            .setContent("<b>Search Center:</b> " + query + "<br><i>No specific tagged food/water nodes found in this exact 5mi radius. Try a major metro area!</i>")
+                            .setContent("<b>Search Center:</b> " + searchQuery + "<br><i>No matching nodes found in this 5mi radius. Try searching a major city center!</i>")
                             .openOn(map);
                     }
                 })
