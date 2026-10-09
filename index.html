@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Food & Water Locator</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+        #map {
+            flex-grow: 1;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Food & Water Locator</h1>
+        <p>Find nearby pantries and clean water sources</p>
+    </header>
+
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // 1. Initialize map centered around Irving, TX
+        var map = L.map('map').setView([32.8140, -96.9489], 12);
+
+        // 2. Public OpenStreetMap tile layer (No API Key Required)
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 3. Sample List of Food Pantries & Water Stations
+        var locations = [
+            {
+                name: "Irving Cares Food Pantry",
+                lat: 32.8105,
+                lng: -96.9535,
+                type: "Food & Water",
+                hours: "Mon-Fri: 9am - 3pm"
+            },
+            {
+                name: "Community Water Station",
+                lat: 32.8300,
+                lng: -96.9600,
+                type: "Water Refill",
+                hours: "24/7"
+            }
+        ];
+
+        // 4. Add Pin Markers to the Map
+        locations.forEach(function(place) {
+            var marker = L.marker([place.lat, place.lng]).addTo(map);
+            
+            marker.bindPopup(
+                '<b>' + place.name + '</b><br>' +
+                '<strong>Type:</strong> ' + place.type + '<br>' +
+                '<strong>Hours:</strong> ' + place.hours
+            );
+        });
+    </script>
+</body>
+</html>
