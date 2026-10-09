@@ -198,14 +198,12 @@
                 .then(data => {
                     if (data && data.elements && data.elements.length > 0) {
                         data.elements.forEach(element => {
-                            // Extract latitude and longitude (supporting both direct nodes and way/relation centers)
                             var elLat = element.lat || (element.center ? element.center.lat : null);
                             var elLon = element.lon || (element.center ? element.center.lon : null);
 
                             if (elLat && elLon) {
                                 var tags = element.tags || {};
                                 
-                                // Determine Service & Descriptive Fallback Name
                                 var service = "Community Resource";
                                 var defaultName = "Public Community Facility";
 
@@ -225,7 +223,6 @@
 
                                 var name = tags.name ? tags.name : defaultName;
                                 
-                                // Build Address string from OSM tags if available
                                 var houseNo = tags["addr:housenumber"] || "";
                                 var street = tags["addr:street"] || "";
                                 var city = tags["addr:city"] || "";
@@ -234,10 +231,11 @@
                                 
                                 var address = (houseNo ? houseNo + " " : "") + street + (city ? ", " + city : "") + (state ? ", " + state : "") + (postcode ? " " + postcode : "");
                                 if (!street) {
-                                    address = "GPS Location (Tap directions link below)";
+                                    address = "GPS Location (Tap walking directions below)";
                                 }
 
-                                var navUrl = "https://www.google.com/maps/dir/?api=1&destination=" + elLat + "," + elLon;
+                                // Force walking mode directly in the Google Maps URL
+                                var navUrl = "https://www.google.com/maps/dir/?api=1&destination=" + elLat + "," + elLon + "&travelmode=walking";
 
                                 var marker = L.marker([elLat, elLon]);
                                 marker.bindPopup(
@@ -245,7 +243,7 @@
                                     '<b>Address:</b> ' + address + '<br>' +
                                     '<b>Location:</b> ' + elLat.toFixed(5) + ', ' + elLon.toFixed(5) + '<br>' +
                                     '<b>Service:</b> ' + service + '<br>' +
-                                    '<a href="' + navUrl + '" target="_blank" style="color: #2980b9; font-weight: bold; text-decoration: underline;">Open Directions in Google Maps</a>'
+                                    '<a href="' + navUrl + '" target="_blank" style="color: #27ae60; font-weight: bold; text-decoration: underline;">Open Walking Directions</a>'
                                 );
                                 markersLayer.addLayer(marker);
                             }
