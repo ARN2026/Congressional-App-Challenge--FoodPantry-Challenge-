@@ -153,14 +153,14 @@
                         // Zoom map neatly to fit the circle
                         map.fitBounds(searchCircle.getBounds());
 
-                        // Show the requested center popup format
+                        // Show the center popup with loading notice
                         L.popup()
                             .setLatLng(center)
-                            .setContent("<b>Searched area for:</b> " + query + "<br><i>Fetched within 5 miles</i>")
+                            .setContent("<b>Searched area for:</b> " + query + "<br><i>Fetched within 5 miles</i><br><span style='color: #e67e22; font-weight: bold;'>Please wait for results to load!</span>")
                             .openOn(map);
 
                         // Fetch real resources inside this 5-mile radius
-                        fetchOverpassData(lat, lon, 8046, query);
+                        fetchOverpassData(lat, lon, 8046);
 
                     } else {
                         alert("Location not found in the US. Please try a valid ZIP code or city.");
@@ -172,15 +172,14 @@
                 });
         }
 
-        // 4. Function to query OpenStreetMap via Overpass API with detailed tagging
-        function fetchOverpassData(lat, lon, radiusMeters, searchQuery) {
+        // 4. Function to query OpenStreetMap via Overpass API
+        function fetchOverpassData(lat, lon, radiusMeters) {
             markersLayer.clearLayers();
 
             var overpassQuery = `
                 [out:json][timeout:25];
                 (
                   node["amenity"="social_facility"](around:${radiusMeters},${lat},${lon});
-                  way["amenity"="social_facility"](around:${radiusMeters},${lat},${lon});
                   node["social_facility"="food_bank"](around:${radiusMeters},${lat},${lon});
                   node["amenity"="food_pantry"](around:${radiusMeters},${lat},${lon});
                   node["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
@@ -189,7 +188,7 @@
                   node["amenity"="shelter"](around:${radiusMeters},${lat},${lon});
                   node["shop"="supermarket"](around:${radiusMeters},${lat},${lon});
                 );
-                out body center;
+                out body;
             `;
 
             var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
@@ -199,11 +198,7 @@
                 .then(data => {
                     if (data && data.elements && data.elements.length > 0) {
                         data.elements.forEach(element => {
-                            // Handle both nodes and ways (using center lat/lon for ways if available)
-                            var elLat = element.lat || (element.center ? element.center.lat : null);
-                            var elLon = element.lon || (element.center ? element.center.lon : null);
-
-                            if (elLat && elLon) {
+                            if (element.lat && element.lon) {
                                 var tags = element.tags || {};
                                 var name = tags.name ? tags.name : "Community Resource";
                                 
@@ -231,11 +226,11 @@
                                     service = "Place of Worship / Community Support";
                                 }
 
-                                var marker = L.marker([elLat, elLon]);
+                                var marker = L.marker([element.lat, element.lon]);
                                 marker.bindPopup(
                                     '<b>Name:</b> ' + name + '<br>' +
                                     '<b>Address:</b> ' + address + '<br>' +
-                                    '<b>Location:</b> ' + elLat.toFixed(5) + ', ' + elLon.toFixed(5) + '<br>' +
+                                    '<b>Location:</b> ' + element.lat.toFixed(5) + ', ' + element.lon.toFixed(5) + '<br>' +
                                     '<b>Service:</b> ' + service
                                 );
                                 markersLayer.addLayer(marker);
