@@ -172,7 +172,54 @@
                 });
         }
 
-        // 4. Function to query OpenStreetMap including houses of worship (temples, mosques, churches, gurdwaras)
+        // Helper function to assign intuitive universal emojis based on category and religion tags
+        function getResourceInfo(tags) {
+            var service = "Community Resource";
+            var defaultName = "Public Community Facility";
+            var emoji = "📍";
+
+            if (tags.amenity === "drinking_water" || tags.amenity === "water_point") {
+                service = "💧 Water Access";
+                defaultName = "Public Drinking Water Station";
+                emoji = "💧";
+            } else if (tags.amenity === "food_pantry" || tags.social_facility === "food_bank") {
+                service = "🍞 Food Support";
+                defaultName = "Community Food Pantry / Bank";
+                emoji = "🍞";
+            } else if (tags.amenity === "shelter" || tags.social_facility === "shelter") {
+                service = "🏠 Emergency Shelter";
+                defaultName = "Community Shelter";
+                emoji = "🏠";
+            } else if (tags.amenity === "place_of_worship") {
+                var religion = tags.religion ? tags.religion.toLowerCase() : "";
+                if (religion === "hindu") {
+                    service = "🕉️ Hindu Temple Support";
+                    defaultName = "Hindu Temple";
+                    emoji = "🕉️";
+                } else if (religion === "muslim") {
+                    service = "☪️ Mosque Support";
+                    defaultName = "Islamic Center / Mosque";
+                    emoji = "☪️";
+                } else if (religion === "sikh") {
+                    service = "☬ Gurdwara Community Kitchen";
+                    defaultName = "Sikh Gurdwara";
+                    emoji = "☬";
+                } else {
+                    service = "⛪ Faith-Based Support";
+                    defaultName = "House of Worship / Community Support";
+                    emoji = "⛪";
+                }
+            } else if (tags.amenity === "community_centre") {
+                service = "🤝 Community Aid Center";
+                defaultName = "Community Center";
+                emoji = "🤝";
+            }
+
+            var name = tags.name ? (emoji + " " + tags.name) : (emoji + " " + defaultName);
+            return { name: name, service: service };
+        }
+
+        // 4. Function to query OpenStreetMap and render results with universal icons
         function fetchOverpassData(lat, lon, radiusMeters, searchQuery) {
             markersLayer.clearLayers();
 
@@ -197,44 +244,11 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data && data.elements && data.elements.length > 0) {
+                        data.elements.extensions = [];
                         data.elements.forEach(element => {
                             if (element.lat && element.lon) {
                                 var tags = element.tags || {};
-                                
-                                var service = "Community Resource";
-                                var defaultName = "Public Community Facility";
-
-                                if (tags.amenity === "drinking_water" || tags.amenity === "water_point") {
-                                    service = "Water";
-                                    defaultName = "Public Drinking Water Station";
-                                } else if (tags.amenity === "food_pantry" || tags.social_facility === "food_bank") {
-                                    service = "Food";
-                                    defaultName = "Community Food Pantry / Bank";
-                                } else if (tags.amenity === "shelter" || tags.social_facility === "shelter") {
-                                    service = "Shelter";
-                                    defaultName = "Community Shelter";
-                                } else if (tags.amenity === "place_of_worship") {
-                                    // Custom label based on religion tag if present
-                                    var religion = tags.religion ? tags.religion : "";
-                                    if (religion === "hindu") {
-                                        service = "Hindu Temple / Community Support";
-                                        defaultName = "Hindu Temple";
-                                    } else if (religion === "muslim") {
-                                        service = "Mosque / Community Support";
-                                        defaultName = "Islamic Center / Mosque";
-                                    } else if (religion === "sikh") {
-                                        service = "Gurdwara / Community Kitchen (Langar)";
-                                        defaultName = "Sikh Gurdwara";
-                                    } else {
-                                        service = "Faith-Based Community Support";
-                                        defaultName = "House of Worship / Community Support";
-                                    }
-                                } else if (tags.amenity === "community_centre") {
-                                    service = "Community Aid & Support";
-                                    defaultName = "Community Center";
-                                }
-
-                                var name = tags.name ? tags.name : defaultName;
+                                var info = getResourceInfo(tags);
                                 
                                 var houseNo = tags["addr:housenumber"] || "";
                                 var street = tags["addr:street"] || "";
@@ -252,10 +266,10 @@
 
                                 var marker = L.marker([element.lat, element.lon]);
                                 marker.bindPopup(
-                                    '<b>Name:</b> ' + name + '<br>' +
+                                    '<b>Name:</b> ' + info.name + '<br>' +
                                     '<b>Address:</b> ' + address + '<br>' +
                                     '<b>Location:</b> ' + element.lat.toFixed(5) + ', ' + element.lon.toFixed(5) + '<br>' +
-                                    '<b>Service:</b> ' + service + '<br>' +
+                                    '<b>Service:</b> ' + info.service + '<br>' +
                                     '<a href="' + navUrl + '" target="_blank" style="color: #27ae60; font-weight: bold; text-decoration: underline;">Open Walking Directions</a>'
                                 );
                                 markersLayer.addLayer(marker);
