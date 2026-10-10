@@ -1,77 +1,327 @@
-function getResourceInfo(tags) {
-    var service = "Community Resource";
-    var defaultName = "Public Community Facility";
-    var emoji = "📍";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Food & Water Locator - By Aishwarya Reddy Nalla</title>
 
-    if (tags.amenity === "drinking_water" || tags.amenity === "water_point") {
-        service = "💧 Water Access";
-        defaultName = "Public Drinking Water Station";
-        emoji = "💧";
-    } else if (tags.amenity === "food_pantry" || tags.social_facility === "food_bank") {
-        service = "🍞 Food Support";
-        defaultName = "Community Food Pantry / Bank";
-        emoji = "🍞";
-    } else if (tags.amenity === "shelter" || tags.social_facility === "shelter") {
-        service = "🏠 Emergency Shelter";
-        defaultName = "Community Shelter";
-        emoji = "🏠";
-    } else if (tags.amenity === "place_of_worship") {
-        var religion = tags.religion ? tags.religion.toLowerCase() : "";
-        var nameLower = tags.name ? tags.name.toLowerCase() : "";
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-        // 1. Check Buddhism / Eastern / Chinese Temples
-        if (religion === "buddhist" || religion === "taoist" || 
-            nameLower.includes("buddhist") || nameLower.includes("temple") || 
-            nameLower.includes("meditation") || nameLower.includes("pagoda") || 
-            nameLower.includes("zen") || nameLower.includes("dharma")) {
-            service = "🪷 Buddhist / Eastern Temple Support";
-            defaultName = "Temple / Meditation Center";
-            emoji = "🪷";
-        } 
-        // 2. Check Hinduism
-        else if (religion === "hindu" || nameLower.includes("hindu") || nameLower.includes("mandir")) {
-            service = "🕉️ Hindu Temple Support";
-            defaultName = "Hindu Temple";
-            emoji = "🕉️";
-        } 
-        // 3. Check Islam
-        else if (religion === "muslim" || nameLower.includes("mosque") || nameLower.includes("masjid") || nameLower.includes("islamic")) {
-            service = "☪️ Mosque Support";
-            defaultName = "Islamic Center / Mosque";
-            emoji = "☪️";
-        } 
-        // 4. Check Sikhism
-        else if (religion === "sikh" || nameLower.includes("gurdwara") || nameLower.includes("sikh")) {
-            service = "☬ Gurdwara Community Kitchen";
-            defaultName = "Sikh Gurdwara";
-            emoji = "☬";
-        } 
-        // 5. Check Judaism
-        else if (religion === "jewish" || nameLower.includes("synagogue") || nameLower.includes("chabad") || nameLower.includes("congregation")) {
-            service = "✡️ Jewish Community Support";
-            defaultName = "Synagogue / Community Center";
-            emoji = "✡️";
+    <style>
+        .leaflet-control-attribution a[href*="leafletjs.com"] {
+            background-image: none !important;
         }
-        // 6. Check Christianity
-        else if (religion === "christian" || nameLower.includes("church") || nameLower.includes("baptist") || 
-                 nameLower.includes("chapel") || nameLower.includes("cathedral") || nameLower.includes("parish") || 
-                 nameLower.includes("methodist") || nameLower.includes("lutheran") || nameLower.includes("presbyterian")) {
-            service = "✝️ Christian Church Support";
-            defaultName = "Church / Christian Center";
-            emoji = "✝️";
-        } 
-        // 7. Neutral Fallback for unclassified houses of worship
-        else {
-            service = "🙏 Faith-Based Community Support";
-            defaultName = "House of Worship / Faith Center";
-            emoji = "🙏";
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
-    } else if (tags.amenity === "community_centre") {
-        service = "🤝 Community Aid Center";
-        defaultName = "Community Center";
-        emoji = "🤝";
-    }
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header-title h1 {
+            font-size: 1.4rem;
+            margin: 0;
+        }
+        .header-title p {
+            font-size: 0.85rem;
+            margin: 2px 0 0 0;
+            color: #bdc3c7;
+        }
+        .search-container {
+            display: flex;
+            gap: 6px;
+        }
+        .search-container input {
+            padding: 6px 10px;
+            width: 200px;
+            border-radius: 4px;
+            border: none;
+            font-size: 0.9rem;
+        }
+        .search-container button {
+            padding: 6px 12px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .search-container button:hover {
+            background-color: #219653;
+        }
+        #map {
+            flex-grow: 1;
+            width: 100%;
+        }
 
-    var name = tags.name ? (emoji + " " + tags.name) : (emoji + " " + defaultName);
-    return { name: name, service: service };
-}
+        /* Responsive layout for mobile devices */
+        @media (max-width: 600px) {
+            header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .search-container {
+                width: 100%;
+                justify-content: center;
+            }
+            .search-container input {
+                width: 70%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <h1>Food & Water Locator</h1>
+            <p>Find nearby pantries and clean water sources instantly</p>
+        </div>
+        
+        <!-- Search Bar -->
+        <div class="search-container">
+            <input type="text" id="zipInput" placeholder="Enter US ZIP or City...">
+            <button onclick="searchLocation()">Search</button>
+        </div>
+    </header>
+
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // 1. Initialize map centered around Irving, TX
+        var map = L.map('map').setView([32.8140, -96.9489], 12);
+
+        // 2. Public OpenStreetMap tile layer
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Global variables to store active search circle and dynamic markers layer group
+        var searchCircle = null;
+        var markersLayer = L.layerGroup().addTo(map);
+
+        // 3. Search Location Function with 5-Mile Circle & Real-Time Overpass API Data
+        function searchLocation() {
+            var query = document.getElementById('zipInput').value;
+            if (!query) {
+                alert("Please enter a US ZIP code or city.");
+                return;
+            }
+
+            var searchUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query + ', USA');
+
+            fetch(searchUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        var result = data[0];
+                        var lat = parseFloat(result.lat);
+                        var lon = parseFloat(result.lon);
+                        var center = [lat, lon];
+
+                        // Remove previous search circle if it exists
+                        if (searchCircle) {
+                            map.removeLayer(searchCircle);
+                        }
+
+                        // Draw a 5-mile radius search circle (8046 meters)
+                        searchCircle = L.circle(center, {
+                            radius: 8046,
+                            color: "#1b365d",
+                            weight: 2,
+                            fillColor: "#4a90e2",
+                            fillOpacity: 0.2
+                        }).addTo(map);
+
+                        // Zoom map neatly to fit the circle
+                        map.fitBounds(searchCircle.getBounds());
+
+                        // Show center search popup with loading notice
+                        L.popup()
+                            .setLatLng(center)
+                            .setContent("<b>Searched area for:</b> " + query + "<br><i>Fetched within 5 miles</i><br><span style='color: #e67e22; font-weight: bold;'>Please wait for results to load!</span>")
+                            .openOn(map);
+
+                        // Fetch real humanitarian resources inside this 5-mile radius
+                        fetchOverpassData(lat, lon, 8046, query);
+
+                    } else {
+                        alert("Location not found in the US. Please try a valid ZIP code or city.");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching location:', error);
+                    alert("Error connecting to search service.");
+                });
+        }
+
+        // Crash-safe helper function to assign intuitive universal emojis and labels
+        function getResourceInfo(tags) {
+            tags = tags || {};
+            
+            var service = "Community Resource";
+            var defaultName = "Public Community Facility";
+            var emoji = "📍";
+
+            var amenity = tags.amenity ? tags.amenity.toLowerCase() : "";
+            var socialFacility = tags.social_facility ? tags.social_facility.toLowerCase() : "";
+            var religion = tags.religion ? tags.religion.toLowerCase() : "";
+            var rawName = tags.name || "";
+            var nameLower = rawName.toLowerCase();
+
+            if (amenity === "drinking_water" || amenity === "water_point") {
+                service = "💧 Water Access";
+                defaultName = "Public Drinking Water Station";
+                emoji = "💧";
+            } else if (amenity === "food_pantry" || socialFacility === "food_bank") {
+                service = "🍞 Food Support";
+                defaultName = "Community Food Pantry / Bank";
+                emoji = "🍞";
+            } else if (amenity === "shelter" || socialFacility === "shelter") {
+                service = "🏠 Emergency Shelter";
+                defaultName = "Community Shelter";
+                emoji = "🏠";
+            } else if (amenity === "place_of_worship") {
+                // 1. Buddhism / Eastern / Chinese Temples
+                if (religion === "buddhist" || religion === "taoist" || 
+                    nameLower.includes("buddhist") || nameLower.includes("temple") || 
+                    nameLower.includes("meditation") || nameLower.includes("pagoda") || 
+                    nameLower.includes("zen") || nameLower.includes("dharma") || nameLower.includes("lianhua")) {
+                    service = "🪷 Buddhist / Eastern Temple Support";
+                    defaultName = "Temple / Meditation Center";
+                    emoji = "🪷";
+                } 
+                // 2. Hinduism
+                else if (religion === "hindu" || nameLower.includes("hindu") || nameLower.includes("mandir")) {
+                    service = "🕉️ Hindu Temple Support";
+                    defaultName = "Hindu Temple";
+                    emoji = "🕉️";
+                } 
+                // 3. Islam
+                else if (religion === "muslim" || nameLower.includes("mosque") || nameLower.includes("masjid") || nameLower.includes("islamic")) {
+                    service = "☪️ Mosque Support";
+                    defaultName = "Islamic Center / Mosque";
+                    emoji = "☪️";
+                } 
+                // 4. Sikhism
+                else if (religion === "sikh" || nameLower.includes("gurdwara") || nameLower.includes("sikh")) {
+                    service = "☬ Gurdwara Community Kitchen";
+                    defaultName = "Sikh Gurdwara";
+                    emoji = "☬";
+                } 
+                // 5. Judaism
+                else if (religion === "jewish" || nameLower.includes("synagogue") || nameLower.includes("chabad") || nameLower.includes("congregation")) {
+                    service = "✡️ Jewish Community Support";
+                    defaultName = "Synagogue / Community Center";
+                    emoji = "✡️";
+                }
+                // 6. Christianity
+                else if (religion === "christian" || nameLower.includes("church") || nameLower.includes("baptist") || 
+                         nameLower.includes("chapel") || nameLower.includes("cathedral") || nameLower.includes("parish") || 
+                         nameLower.includes("methodist") || nameLower.includes("lutheran") || nameLower.includes("presbyterian")) {
+                    service = "✝️ Christian Church Support";
+                    defaultName = "Church / Christian Center";
+                    emoji = "✝️";
+                } 
+                // 7. Neutral Fallback for unclassified houses of worship
+                else {
+                    service = "🙏 Faith-Based Community Support";
+                    defaultName = "House of Worship / Faith Center";
+                    emoji = "🙏";
+                }
+            } else if (amenity === "community_centre") {
+                service = "🤝 Community Aid Center";
+                defaultName = "Community Center";
+                emoji = "🤝";
+            }
+
+            var name = rawName ? (emoji + " " + rawName) : (emoji + " " + defaultName);
+            return { name: name, service: service };
+        }
+
+        // 4. Function to query OpenStreetMap via Overpass API
+        function fetchOverpassData(lat, lon, radiusMeters, searchQuery) {
+            markersLayer.clearLayers();
+
+            var overpassQuery = `
+                [out:json][timeout:25];
+                (
+                  node["amenity"="social_facility"](around:${radiusMeters},${lat},${lon});
+                  node["social_facility"="food_bank"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="food_pantry"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="water_point"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="shelter"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="place_of_worship"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="community_centre"](around:${radiusMeters},${lat},${lon});
+                );
+                out body;
+            `;
+
+            var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.elements && data.elements.length > 0) {
+                        data.elements.forEach(element => {
+                            if (element.lat && element.lon) {
+                                var tags = element.tags || {};
+                                var info = getResourceInfo(tags);
+                                
+                                var houseNo = tags["addr:housenumber"] || "";
+                                var street = tags["addr:street"] || "";
+                                var city = tags["addr:city"] || "";
+                                var state = tags["addr:state"] || "";
+                                var postcode = tags["addr:postcode"] || "";
+                                
+                                var address = (houseNo ? houseNo + " " : "") + street + (city ? ", " + city : "") + (state ? ", " + state : "") + (postcode ? " " + postcode : "");
+                                if (!street) {
+                                    address = "GPS Location (Tap walking directions below)";
+                                }
+
+                                // Google Maps directions link forced to walking mode
+                                var navUrl = "https://www.google.com/maps/dir/?api=1&destination=" + element.lat + "," + element.lon + "&travelmode=walking";
+
+                                var marker = L.marker([element.lat, element.lon]);
+                                marker.bindPopup(
+                                    '<b>Name:</b> ' + info.name + '<br>' +
+                                    '<b>Address:</b> ' + address + '<br>' +
+                                    '<b>Location:</b> ' + element.lat.toFixed(5) + ', ' + element.lon.toFixed(5) + '<br>' +
+                                    '<b>Service:</b> ' + info.service + '<br>' +
+                                    '<a href="' + navUrl + '" target="_blank" style="color: #27ae60; font-weight: bold; text-decoration: underline;">Open Walking Directions</a>'
+                                );
+                                markersLayer.addLayer(marker);
+                            }
+                        });
+                    } else {
+                        L.popup()
+                            .setLatLng([lat, lon])
+                            .setContent("<b>Search Center:</b> " + searchQuery + "<br><i>No non-profit aid nodes mapped within this 5mi radius. Try a major metro area!</i>")
+                            .openOn(map);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching Overpass data:', error);
+                });
+        }
+    </script>
+</body>
+</html>
