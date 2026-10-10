@@ -172,7 +172,7 @@
                 });
         }
 
-        // 4. Function to query OpenStreetMap strictly for non-profit and community support hubs
+        // 4. Function to query OpenStreetMap including houses of worship (temples, mosques, churches, gurdwaras)
         function fetchOverpassData(lat, lon, radiusMeters, searchQuery) {
             markersLayer.clearLayers();
 
@@ -214,8 +214,21 @@
                                     service = "Shelter";
                                     defaultName = "Community Shelter";
                                 } else if (tags.amenity === "place_of_worship") {
-                                    service = "Community Support / Food Distribution";
-                                    defaultName = "Local House of Worship";
+                                    // Custom label based on religion tag if present
+                                    var religion = tags.religion ? tags.religion : "";
+                                    if (religion === "hindu") {
+                                        service = "Hindu Temple / Community Support";
+                                        defaultName = "Hindu Temple";
+                                    } else if (religion === "muslim") {
+                                        service = "Mosque / Community Support";
+                                        defaultName = "Islamic Center / Mosque";
+                                    } else if (religion === "sikh") {
+                                        service = "Gurdwara / Community Kitchen (Langar)";
+                                        defaultName = "Sikh Gurdwara";
+                                    } else {
+                                        service = "Faith-Based Community Support";
+                                        defaultName = "House of Worship / Community Support";
+                                    }
                                 } else if (tags.amenity === "community_centre") {
                                     service = "Community Aid & Support";
                                     defaultName = "Community Center";
@@ -249,7 +262,6 @@
                             }
                         });
                     } else {
-                        // Fallback notice if an area has no matching humanitarian nodes
                         L.popup()
                             .setLatLng([lat, lon])
                             .setContent("<b>Search Center:</b> " + searchQuery + "<br><i>No non-profit aid nodes mapped within this 5mi radius. Try a major metro area!</i>")
