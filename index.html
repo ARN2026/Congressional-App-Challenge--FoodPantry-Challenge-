@@ -18,7 +18,7 @@
             box-sizing: border-box;
         }
         body {
-            font-family: 'Inter', sans-serif.replace, sans-serif;
+            font-family: 'Inter', sans-serif;
             margin: 0;
             padding: 0;
             display: flex;
@@ -477,7 +477,7 @@
             var overpassQuery = `
                 [out:json][timeout:25];
                 (
-                  node["amenity"="social_factory"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="social_facility"](around:${radiusMeters},${lat},${lon});
                   node["social_facility"="food_bank"](around:${radiusMeters},${lat},${lon});
                   node["amenity"="food_pantry"](around:${radiusMeters},${lat},${lon});
                   node["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
