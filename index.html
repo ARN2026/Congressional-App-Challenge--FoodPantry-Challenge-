@@ -356,7 +356,7 @@
 
                         L.popup()
                             .setLatLng(center)
-                            .setContent("<b>Searched area:</b> " + query + "<br><i>5-mile humanitarian radius loaded</i>")
+                            .setContent("<b>Searched area:</b> " + query + "<br>Fetched within a radius of 5 miles<br><span style='color: #64748b; font-style: italic;'>Please wait for results to load!</span>")
                             .openOn(map);
 
                         fetchOverpassData(lat, lon, 8046, query);
