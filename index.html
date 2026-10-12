@@ -29,6 +29,7 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 10px;
+            z-index: 1000;
         }
         .header-title h1 {
             font-size: 1.4rem;
@@ -62,13 +63,60 @@
         .search-container button:hover {
             background-color: #219653;
         }
+
+        /* Main app layout with sidebar */
+        .main-container {
+            display: flex;
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        #sidebar {
+            width: 280px;
+            background-color: #f8f9fa;
+            border-right: 1px solid #ddd;
+            padding: 15px;
+            box-sizing: border-box;
+            display: none; /* Hidden until search is performed */
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            z-index: 999;
+        }
+        #sidebar h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.1rem;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 8px;
+        }
+        .filter-btn {
+            padding: 10px;
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            text-align: left;
+            cursor: pointer;
+            font-weight: bold;
+            color: #334155;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover {
+            background-color: #e2e8f0;
+            border-color: #94a3b8;
+        }
+        .filter-btn.active {
+            background-color: #1b365d;
+            color: white;
+            border-color: #1b365d;
+        }
         #map {
             flex-grow: 1;
-            width: 100%;
+            height: 100%;
         }
 
         /* Responsive layout for mobile devices */
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
             header {
                 flex-direction: column;
                 text-align: center;
@@ -77,8 +125,12 @@
                 width: 100%;
                 justify-content: center;
             }
-            .search-container input {
-                width: 70%;
+            .main-container {
+                flex-direction: column;
+            }
+            #sidebar {
+                width: 100%;
+                max-height: 180px;
             }
         }
     </style>
@@ -98,7 +150,19 @@
         </div>
     </header>
 
-    <div id="map"></div>
+    <div class="main-container">
+        <!-- Filter Sidebar (Appears after search) -->
+        <div id="sidebar">
+            <h3>Filter Aid Categories</h3>
+            <button class="filter-btn active" onclick="filterCategory('all', this)">🌐 Show All Resources</button>
+            <button class="filter-btn" onclick="filterCategory('food', this)">🍞 Food Pantries</button>
+            <button class="filter-btn" onclick="filterCategory('water', this)">💧 Water Access</button>
+            <button class="filter-btn" onclick="filterCategory('shelter', this)">🏠 Emergency Shelters</button>
+            <button class="filter-btn" onclick="filterCategory('faith', this)">⛪ Faith & Community Support</button>
+        </div>
+
+        <div id="map"></div>
+    </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -107,15 +171,32 @@
         // 1. Initialize map centered around Irving, TX
         var map = L.map('map').setView([32.8140, -96.9489], 12);
 
-        // 2. Public OpenStreetMap tile layer
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // 2. Base Tile Layers (Road View & Satellite View)
+        var roadLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+        });
 
-        // Global variables to store active search circle and dynamic markers layer group
+        var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        });
+
+        // Set default view to Road View
+        roadLayer.addTo(map);
+
+        // Add layer switcher control to toggle between Road and Satellite view
+        var baseMaps = {
+            "🛣️ Road View": roadLayer,
+            "🗺️ Satellite View": satelliteLayer
+        };
+        L.control.layers(baseMaps).addTo(map);
+
+        // Global variables to store search circle, markers array, and active filters
         var searchCircle = null;
         var markersLayer = L.layerGroup().addTo(map);
+        var allMarkersData = [];
+        var currentFilter = 'all';
 
         // 3. Search Location Function with 5-Mile Circle & Real-Time Overpass API Data
         function searchLocation() {
@@ -135,6 +216,9 @@
                         var lat = parseFloat(result.lat);
                         var lon = parseFloat(result.lon);
                         var center = [lat, lon];
+
+                        // Show sidebar once search is successful
+                        document.getElementById('sidebar').style.display = 'flex';
 
                         // Remove previous search circle if it exists
                         if (searchCircle) {
@@ -172,13 +256,14 @@
                 });
         }
 
-        // Crash-safe helper function to assign intuitive universal emojis and labels
+        // Crash-safe helper function to assign categories and emojis
         function getResourceInfo(tags) {
             tags = tags || {};
             
             var service = "Community Resource";
             var defaultName = "Public Community Facility";
-            var emoji = "📍";
+            var emoji = "🆘";
+            var category = "community";
 
             var amenity = tags.amenity ? tags.amenity.toLowerCase() : "";
             var socialFacility = tags.social_facility ? tags.social_facility.toLowerCase() : "";
@@ -190,16 +275,19 @@
                 service = "💧 Water Access";
                 defaultName = "Public Drinking Water Station";
                 emoji = "💧";
+                category = "water";
             } else if (amenity === "food_pantry" || socialFacility === "food_bank") {
-                service = "🍞 Food Support";
+                service = "🍎 Food Support";
                 defaultName = "Community Food Pantry / Bank";
-                emoji = "🍞";
+                emoji = "🍎";
+                category = "food";
             } else if (amenity === "shelter" || socialFacility === "shelter") {
                 service = "🏠 Emergency Shelter";
                 defaultName = "Community Shelter";
                 emoji = "🏠";
+                category = "shelter";
             } else if (amenity === "place_of_worship") {
-                // 1. Buddhism / Eastern / Chinese Temples
+                category = "faith";
                 if (religion === "buddhist" || religion === "taoist" || 
                     nameLower.includes("buddhist") || nameLower.includes("temple") || 
                     nameLower.includes("meditation") || nameLower.includes("pagoda") || 
@@ -207,57 +295,69 @@
                     service = "🪷 Buddhist / Eastern Temple Support";
                     defaultName = "Temple / Meditation Center";
                     emoji = "🪷";
-                } 
-                // 2. Hinduism
-                else if (religion === "hindu" || nameLower.includes("hindu") || nameLower.includes("mandir")) {
+                } else if (religion === "hindu" || nameLower.includes("hindu") || nameLower.includes("mandir")) {
                     service = "🕉️ Hindu Temple Support";
                     defaultName = "Hindu Temple";
                     emoji = "🕉️";
-                } 
-                // 3. Islam
-                else if (religion === "muslim" || nameLower.includes("mosque") || nameLower.includes("masjid") || nameLower.includes("islamic")) {
+                } else if (religion === "muslim" || nameLower.includes("mosque") || nameLower.includes("masjid") || nameLower.includes("islamic")) {
                     service = "☪️ Mosque Support";
                     defaultName = "Islamic Center / Mosque";
                     emoji = "☪️";
-                } 
-                // 4. Sikhism
-                else if (religion === "sikh" || nameLower.includes("gurdwara") || nameLower.includes("sikh")) {
+                } else if (religion === "sikh" || nameLower.includes("gurdwara") || nameLower.includes("sikh")) {
                     service = "☬ Gurdwara Community Kitchen";
                     defaultName = "Sikh Gurdwara";
                     emoji = "☬";
-                } 
-                // 5. Judaism
-                else if (religion === "jewish" || nameLower.includes("synagogue") || nameLower.includes("chabad") || nameLower.includes("congregation")) {
+                } else if (religion === "jewish" || nameLower.includes("synagogue") || nameLower.includes("chabad") || nameLower.includes("congregation")) {
                     service = "✡️ Jewish Community Support";
                     defaultName = "Synagogue / Community Center";
                     emoji = "✡️";
-                }
-                // 6. Christianity
-                else if (religion === "christian" || nameLower.includes("church") || nameLower.includes("baptist") || 
+                } else if (religion === "christian" || nameLower.includes("church") || nameLower.includes("baptist") || 
                          nameLower.includes("chapel") || nameLower.includes("cathedral") || nameLower.includes("parish") || 
                          nameLower.includes("methodist") || nameLower.includes("lutheran") || nameLower.includes("presbyterian")) {
                     service = "✝️ Christian Church Support";
                     defaultName = "Church / Christian Center";
                     emoji = "✝️";
-                } 
-                // 7. Neutral Fallback for unclassified houses of worship
-                else {
+                } else {
                     service = "🙏 Faith-Based Community Support";
                     defaultName = "House of Worship / Faith Center";
                     emoji = "🙏";
                 }
             } else if (amenity === "community_centre") {
-                service = "🤝 Community Aid Center";
+                service = "🫂 Community Aid Center";
                 defaultName = "Community Center";
-                emoji = "🤝";
+                emoji = "🫂";
+                category = "community";
             }
 
             var name = rawName ? (emoji + " " + rawName) : (emoji + " " + defaultName);
-            return { name: name, service: service };
+            return { name: name, service: service, category: category };
         }
 
-        // 4. Function to query OpenStreetMap via Overpass API
+        // 4. Function to render markers based on selected filter
+        function renderMarkers() {
+            markersLayer.clearLayers();
+            allMarkersData.forEach(function(item) {
+                if (currentFilter === 'all' || item.category === currentFilter) {
+                    markersLayer.addLayer(item.marker);
+                }
+            });
+        }
+
+        // 5. Category Filter Button Click Handler
+        function filterCategory(category, btnElement) {
+            currentFilter = category;
+            
+            // Update active button styling in sidebar
+            var buttons = document.querySelectorAll('.filter-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            renderMarkers();
+        }
+
+        // 6. Function to query Overpass API
         function fetchOverpassData(lat, lon, radiusMeters, searchQuery) {
+            allMarkersData = [];
             markersLayer.clearLayers();
 
             var overpassQuery = `
@@ -297,7 +397,6 @@
                                     address = "GPS Location (Tap walking directions below)";
                                 }
 
-                                // Google Maps directions link forced to walking mode
                                 var navUrl = "https://www.google.com/maps/dir/?api=1&destination=" + element.lat + "," + element.lon + "&travelmode=walking";
 
                                 var marker = L.marker([element.lat, element.lon]);
@@ -308,9 +407,16 @@
                                     '<b>Service:</b> ' + info.service + '<br>' +
                                     '<a href="' + navUrl + '" target="_blank" style="color: #27ae60; font-weight: bold; text-decoration: underline;">Open Walking Directions</a>'
                                 );
-                                markersLayer.addLayer(marker);
+
+                                // Store in array for filtering
+                                allMarkersData.push({
+                                    marker: marker,
+                                    category: info.category
+                                });
                             }
                         });
+                        // Render based on current active filter
+                        renderMarkers();
                     } else {
                         L.popup()
                             .setLatLng([lat, lon])
