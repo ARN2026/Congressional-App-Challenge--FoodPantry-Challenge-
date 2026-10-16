@@ -315,7 +315,7 @@
             sidebar.classList.toggle('open');
         }
 
-        // 3. Search Location Function (Includes User-Agent header for Nominatim API compliance)
+        // 3. Search Location Function
         function searchLocation() {
             var query = document.getElementById('zipInput').value.trim();
             if (!query) {
@@ -325,12 +325,7 @@
 
             var searchUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query + ', USA');
 
-            fetch(searchUrl, {
-                headers: {
-                    'Accept': 'application/json',
-                    'User-Agent': 'CommunityAidLocator/1.0 (Congressional App Challenge)'
-                }
-            })
+            fetch(searchUrl)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
