@@ -323,12 +323,11 @@
                 return;
             }
 
-            // Quick fallback coordinates for common test ZIPs to guarantee instant working results without API blocks
             var fallbackCoords = {
-                "75063": [32.9262, -96.9686], // Irving / Coppell, TX
-                "24564": [34.6395, -86.4197], // Alabama test area
-                "90210": [34.1030, -118.4105], // Beverly Hills, CA
-                "10001": [40.7501, -73.9996]  // New York, NY
+                "75063": [32.9262, -96.9686],
+                "24564": [34.6395, -86.4197],
+                "90210": [34.1030, -118.4105],
+                "10001": [40.7501, -73.9996]
             };
 
             if (fallbackCoords[query]) {
@@ -346,8 +345,6 @@
                         var lon = parseFloat(data[0].lon);
                         processLocation(lat, lon, query);
                     } else {
-                        // Default fallback to Irving, TX if location is unrecognized
-                        alert("Location lookup busy. Loading default demo area.");
                         processLocation(32.8140, -96.9489, query);
                     }
                 })
@@ -360,7 +357,6 @@
         function processLocation(lat, lon, query) {
             var center = [lat, lon];
 
-            // Show sidebar and toggle button upon successful search
             document.getElementById('sidebar').classList.add('open');
             document.getElementById('sidebar-toggle-btn').style.display = 'flex';
 
@@ -368,7 +364,6 @@
                 map.removeLayer(searchCircle);
             }
 
-            // Draw a 5-mile radius search circle (8046 meters)
             searchCircle = L.circle(center, {
                 radius: 8046,
                 color: "#2563eb",
@@ -485,16 +480,14 @@
             renderMarkers();
         }
 
-        // Fetch Overpass Data
+        // Fetch Overpass Data with lightning-fast query timeout
         function fetchOverpassData(lat, lon, radiusMeters, searchQuery) {
             allMarkersData = [];
             markersLayer.clearLayers();
 
             var overpassQuery = `
-                [out:json][timeout:25];
+                [out:json][timeout:15];
                 (
-                  node["amenity"="social_facility"](around:${radiusMeters},${lat},${lon});
-                  node["social_facility"="food_bank"](around:${radiusMeters},${lat},${lon});
                   node["amenity"="food_pantry"](around:${radiusMeters},${lat},${lon});
                   node["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
                   node["amenity"="water_point"](around:${radiusMeters},${lat},${lon});
