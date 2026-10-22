@@ -3,234 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Community Aid Locator — Humanitarian Relief Map</title>
+    <title>Food & Water Locator</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Google Fonts for crisp typography -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         .leaflet-control-attribution a[href*="leafletjs.com"] {
             background-image: none !important;
         }
-        * {
-            box-sizing: border-box;
-        }
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
             display: flex;
             flex-direction: column;
             height: 100vh;
-            background-color: #0f172a;
-            color: #334155;
         }
         header {
-            background-color: #0f172a;
+            background-color: #2c3e50;
             color: white;
-            padding: 14px 24px;
+            padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 12px;
-            border-bottom: 1px solid #1e293b;
-            z-index: 1001;
+            gap: 10px;
+            z-index: 1000;
         }
         .header-title h1 {
-            font-size: 1.25rem;
-            font-weight: 700;
+            font-size: 1.4rem;
             margin: 0;
-            letter-spacing: -0.025em;
-            color: #f8fafc;
         }
         .header-title p {
-            font-size: 0.8rem;
-            margin: 3px 0 0 0;
-            color: #94a3b8;
+            font-size: 0.85rem;
+            margin: 2px 0 0 0;
+            color: #bdc3c7;
         }
         .search-container {
             display: flex;
-            gap: 8px;
+            gap: 6px;
         }
         .search-container input {
-            padding: 8px 14px;
-            width: 220px;
-            border-radius: 8px;
-            border: 1px solid #334155;
-            background-color: #1e293b;
-            color: white;
+            padding: 6px 10px;
+            width: 200px;
+            border-radius: 4px;
+            border: none;
             font-size: 0.9rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .search-container input::placeholder {
-            color: #64748b;
-        }
-        .search-container input:focus {
-            border-color: #3b82f6;
         }
         .search-container button {
-            padding: 8px 16px;
-            background-color: #2563eb;
+            padding: 6px 12px;
+            background-color: #27ae60;
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 4px;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: background-color 0.2s;
+            font-weight: bold;
         }
         .search-container button:hover {
-            background-color: #1d4ed8;
+            background-color: #219653;
         }
 
-        /* Main App Layout */
         .main-container {
             display: flex;
             flex-grow: 1;
             position: relative;
             overflow: hidden;
         }
-
-        /* Sleek Collapsible Sidebar */
         #sidebar {
-            width: 300px;
-            background-color: #ffffff;
-            border-right: 1px solid #e2e8f0;
-            padding: 20px;
-            display: flex;
+            width: 280px;
+            background-color: #f8f9fa;
+            border-right: 1px solid #ddd;
+            padding: 15px;
+            box-sizing: border-box;
+            display: none;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
             overflow-y: auto;
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            z-index: 1000;
-            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.08);
-            transform: translateX(-100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 999;
         }
-        #sidebar.open {
-            transform: translateX(0);
-        }
-
-        /* Sidebar Toggle Tab Button */
-        #sidebar-toggle-btn {
-            position: absolute;
-            top: 16px;
-            left: 16px;
-            z-index: 1000;
-            background-color: #ffffff;
-            color: #0f172a;
-            border: 1px solid #cbd5e1;
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            display: none; /* Hidden until search runs */
-            align-items: center;
-            gap: 6px;
-            transition: background-color 0.2s, transform 0.2s;
-        }
-        #sidebar-toggle-btn:hover {
-            background-color: #f1f5f9;
-        }
-
-        .sidebar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-            border-bottom: 1px solid #f1f5f9;
-            padding-bottom: 10px;
-        }
-        .sidebar-header h3 {
-            margin: 0;
-            color: #0f172a;
-            font-size: 1rem;
-            font-weight: 700;
-        }
-        .close-sidebar {
-            background: none;
-            border: none;
+        #sidebar h3 {
+            margin-top: 0;
+            color: #2c3e50;
             font-size: 1.1rem;
-            cursor: pointer;
-            color: #64748b;
-            padding: 4px 8px;
-            border-radius: 4px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 8px;
         }
-        .close-sidebar:hover {
-            background-color: #f1f5f9;
-            color: #0f172a;
-        }
-
         .filter-btn {
-            padding: 10px 14px;
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
+            padding: 10px;
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
             text-align: left;
             cursor: pointer;
-            font-weight: 500;
-            font-size: 0.9rem;
-            color: #475569;
+            font-weight: bold;
+            color: #334155;
             transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
         .filter-btn:hover {
-            background-color: #f1f5f9;
-            border-color: #cbd5e1;
-            color: #0f172a;
+            background-color: #e2e8f0;
+            border-color: #94a3b8;
         }
         .filter-btn.active {
-            background-color: #eff6ff;
-            color: #1d4ed8;
-            border-color: #3b82f6;
-            font-weight: 600;
+            background-color: #1b365d;
+            color: white;
+            border-color: #1b365d;
         }
-
         #map {
             flex-grow: 1;
             height: 100%;
-            width: 100%;
         }
 
-        /* Leaflet Popup Customization */
-        .leaflet-popup-content-wrapper {
-            border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
-            padding: 4px;
-        }
-        .leaflet-popup-content {
-            font-family: 'Inter', sans-serif;
-            font-size: 0.9rem;
-            color: #1e293b;
-            line-height: 1.5;
-        }
-
-        /* Mobile Optimization */
         @media (max-width: 768px) {
             header {
                 flex-direction: column;
-                align-items: stretch;
+                text-align: center;
             }
             .search-container {
                 width: 100%;
+                justify-content: center;
             }
-            .search-container input {
-                flex-grow: 1;
+            .main-container {
+                flex-direction: column;
             }
             #sidebar {
                 width: 100%;
-                max-width: 320px;
+                max-height: 180px;
             }
         }
     </style>
@@ -239,29 +137,19 @@
 
     <header>
         <div class="header-title">
-            <h1>Community Aid & Relief Locator</h1>
-            <p>Direct humanitarian access for food, water, and emergency support</p>
+            <h1>Food & Water Locator</h1>
+            <p>Find nearby pantries and clean water sources instantly</p>
         </div>
         
-        <!-- Search Bar -->
         <div class="search-container">
             <input type="text" id="zipInput" placeholder="Enter US ZIP or City...">
-            <button onclick="searchLocation()">Search Area</button>
+            <button onclick="searchLocation()">Search</button>
         </div>
     </header>
 
     <div class="main-container">
-        <!-- Floating Sidebar Toggle Button (Appears after search) -->
-        <button id="sidebar-toggle-btn" onclick="toggleSidebar()">
-            <span>☰ Filters</span>
-        </button>
-
-        <!-- Slide-out Filter Sidebar -->
         <div id="sidebar">
-            <div class="sidebar-header">
-                <h3>Filter Aid Categories</h3>
-                <button class="close-sidebar" onclick="toggleSidebar()" title="Hide Sidebar">✕</button>
-            </div>
+            <h3>Filter Aid Categories</h3>
             <button class="filter-btn active" onclick="filterCategory('all', this)">🌐 Show All Resources</button>
             <button class="filter-btn" onclick="filterCategory('food', this)">🍞 Food Pantries</button>
             <button class="filter-btn" onclick="filterCategory('water', this)">💧 Water Access</button>
@@ -276,13 +164,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // 1. Initialize map centered around Irving, TX
-        var map = L.map('map', { zoomControl: false }).setView([32.8140, -96.9489], 12);
+        var map = L.map('map').setView([32.8140, -96.9489], 12);
 
-        // Add zoom control to top-right to keep UI clean
-        L.control.zoom({ position: 'topright' }).addTo(map);
-
-        // 2. Base Tile Layers (Road View & Satellite View)
         var roadLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
@@ -290,32 +173,22 @@
 
         var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             maxZoom: 19,
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS Community'
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
         });
 
-        // Set default view to Road View
         roadLayer.addTo(map);
 
-        // Add layer switcher control to top-right
         var baseMaps = {
             "🗺️ Road View": roadLayer,
             "🛰️ Satellite View": satelliteLayer
         };
-        L.control.layers(baseMaps, { position: 'topright' }).addTo(map);
+        L.control.layers(baseMaps).addTo(map);
 
-        // Global variables
         var searchCircle = null;
         var markersLayer = L.layerGroup().addTo(map);
         var allMarkersData = [];
         var currentFilter = 'all';
 
-        // Toggle Sidebar Functionality
-        function toggleSidebar() {
-            var sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('open');
-        }
-
-        // 3. Search Location Function with Zip-code Fallbacks
         function searchLocation() {
             var query = document.getElementById('zipInput').value.trim();
             if (!query) {
@@ -323,66 +196,50 @@
                 return;
             }
 
-            var fallbackCoords = {
-                "75063": [32.9262, -96.9686],
-                "24564": [34.6395, -86.4197],
-                "90210": [34.1030, -118.4105],
-                "10001": [40.7501, -73.9996]
-            };
-
-            if (fallbackCoords[query]) {
-                processLocation(fallbackCoords[query][0], fallbackCoords[query][1], query);
-                return;
-            }
-
             var searchUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query + ', USA');
 
             fetch(searchUrl)
-                .then(response => response.json())
-                .then(data => {
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
                     if (data && data.length > 0) {
-                        var lat = parseFloat(data[0].lat);
-                        var lon = parseFloat(data[0].lon);
-                        processLocation(lat, lon, query);
+                        var result = data[0];
+                        var lat = parseFloat(result.lat);
+                        var lon = parseFloat(result.lon);
+                        var center = [lat, lon];
+
+                        document.getElementById('sidebar').style.display = 'flex';
+
+                        if (searchCircle) {
+                            map.removeLayer(searchCircle);
+                        }
+
+                        searchCircle = L.circle(center, {
+                            radius: 8046,
+                            color: "#1b365d",
+                            weight: 2,
+                            fillColor: "#4a90e2",
+                            fillOpacity: 0.2
+                        }).addTo(map);
+
+                        map.fitBounds(searchCircle.getBounds());
+
+                        L.popup()
+                            .setLatLng(center)
+                            .setContent("<b>Searched area:</b> " + query + "<br>Fetched within a radius of 5 miles<br><span style='color: #64748b; font-style: italic;'>Please wait for results to load!</span>")
+                            .openOn(map);
+
+                        fetchOverpassData(lat, lon, 8046, query);
+
                     } else {
-                        processLocation(32.8140, -96.9489, query);
+                        alert("Location not found in the US. Please try a valid ZIP code or city.");
                     }
                 })
-                .catch(error => {
-                    console.error('Nominatim error, using fallback:', error);
-                    processLocation(32.8140, -96.9489, query);
+                .catch(function(error) {
+                    console.error('Error fetching location:', error);
+                    alert("Error connecting to search service.");
                 });
         }
 
-        function processLocation(lat, lon, query) {
-            var center = [lat, lon];
-
-            document.getElementById('sidebar').classList.add('open');
-            document.getElementById('sidebar-toggle-btn').style.display = 'flex';
-
-            if (searchCircle) {
-                map.removeLayer(searchCircle);
-            }
-
-            searchCircle = L.circle(center, {
-                radius: 8046,
-                color: "#2563eb",
-                weight: 2,
-                fillColor: "#3b82f6",
-                fillOpacity: 0.15
-            }).addTo(map);
-
-            map.fitBounds(searchCircle.getBounds());
-
-            L.popup()
-                .setLatLng(center)
-                .setContent("<b>Searched area:</b> " + query + "<br>Fetched within a radius of 5 miles<br><span style='color: #64748b; font-style: italic;'>Please wait for results to load!</span>")
-                .openOn(map);
-
-            fetchOverpassData(lat, lon, 8046, query);
-        }
-
-        // Resource Categorization & Emoji Mapping
         function getResourceInfo(tags) {
             tags = tags || {};
             
@@ -459,7 +316,6 @@
             return { name: name, service: service, category: category };
         }
 
-        // Render markers based on active filter
         function renderMarkers() {
             markersLayer.clearLayers();
             allMarkersData.forEach(function(item) {
@@ -469,42 +325,29 @@
             });
         }
 
-        // Filter button click handler
         function filterCategory(category, btnElement) {
             currentFilter = category;
             
             var buttons = document.querySelectorAll('.filter-btn');
-            buttons.forEach(btn => btn.classList.remove('active'));
+            buttons.forEach(function(btn) { btn.classList.remove('active'); });
             btnElement.classList.add('active');
 
             renderMarkers();
         }
 
-        // Fetch Overpass Data with lightning-fast query timeout
         function fetchOverpassData(lat, lon, radiusMeters, searchQuery) {
             allMarkersData = [];
             markersLayer.clearLayers();
 
-            var overpassQuery = `
-                [out:json][timeout:15];
-                (
-                  node["amenity"="food_pantry"](around:${radiusMeters},${lat},${lon});
-                  node["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
-                  node["amenity"="water_point"](around:${radiusMeters},${lat},${lon});
-                  node["amenity"="shelter"](around:${radiusMeters},${lat},${lon});
-                  node["amenity"="place_of_worship"](around:${radiusMeters},${lat},${lon});
-                  node["amenity"="community_centre"](around:${radiusMeters},${lat},${lon});
-                );
-                out body;
-            `;
+            var overpassQuery = '[out:json][timeout:25];(node["amenity"="social_facility"](around:' + radiusMeters + ',' + lat + ',' + lon + ');node["social_facility"="food_bank"](around:' + radiusMeters + ',' + lat + ',' + lon + ');node["amenity"="food_pantry"](around:' + radiusMeters + ',' + lat + ',' + lon + ');node["amenity"="drinking_water"](around:' + radiusMeters + ',' + lat + ',' + lon + ');node["amenity"="water_point"](around:' + radiusMeters + ',' + lat + ',' + lon + ');node["amenity"="shelter"](around:' + radiusMeters + ',' + lat + ',' + lon + ');node["amenity"="place_of_worship"](around:' + radiusMeters + ',' + lat + ',' + lon + ');node["amenity"="community_centre"](around:' + radiusMeters + ',' + lat + ',' + lon + '););out body;';
 
             var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
 
             fetch(url)
-                .then(response => response.json())
-                .then(data => {
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
                     if (data && data.elements && data.elements.length > 0) {
-                        data.elements.forEach(element => {
+                        data.elements.forEach(function(element) {
                             if (element.lat && element.lon) {
                                 var tags = element.tags || {};
                                 var info = getResourceInfo(tags);
@@ -528,7 +371,7 @@
                                     '<b>Address:</b> ' + address + '<br>' +
                                     '<b>Location:</b> ' + element.lat.toFixed(5) + ', ' + element.lon.toFixed(5) + '<br>' +
                                     '<b>Service:</b> ' + info.service + '<br>' +
-                                    '<a href="' + navUrl + '" target="_blank" style="color: #2563eb; font-weight: 600; text-decoration: underline;">Open Walking Directions</a>'
+                                    '<a href="' + navUrl + '" target="_blank" style="color: #27ae60; font-weight: bold; text-decoration: underline;">Open Walking Directions</a>'
                                 );
 
                                 allMarkersData.push({
@@ -541,11 +384,11 @@
                     } else {
                         L.popup()
                             .setLatLng([lat, lon])
-                            .setContent("<b>Search Center:</b> " + searchQuery + "<br><i>No humanitarian aid nodes mapped within this 5mi radius.</i>")
+                            .setContent("<b>Search Center:</b> " + searchQuery + "<br><i>No non-profit aid nodes mapped within this 5mi radius. Try a major metro area!</i>")
                             .openOn(map);
                     }
                 })
-                .catch(error => {
+                .catch(function(error) {
                     console.error('Error fetching Overpass data:', error);
                 });
         }
