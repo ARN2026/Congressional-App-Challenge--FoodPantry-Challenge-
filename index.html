@@ -9,9 +9,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
-        .leaflet-control-attribution a[href*="leafletjs.com"] {
-            background-image: none !important;
-        }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -23,7 +20,7 @@
         header {
             background-color: #2c3e50;
             color: white;
-            padding: 10px 20px;
+            padding: 12px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -32,11 +29,11 @@
             z-index: 1000;
         }
         .header-title h1 {
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             margin: 0;
         }
         .header-title p {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             margin: 2px 0 0 0;
             color: #bdc3c7;
         }
@@ -45,14 +42,14 @@
             gap: 6px;
         }
         .search-container input {
-            padding: 6px 10px;
+            padding: 8px 10px;
             width: 200px;
             border-radius: 4px;
             border: none;
             font-size: 0.9rem;
         }
         .search-container button {
-            padding: 6px 12px;
+            padding: 8px 14px;
             background-color: #27ae60;
             color: white;
             border: none;
@@ -63,57 +60,11 @@
         .search-container button:hover {
             background-color: #219653;
         }
-
-        .main-container {
-            display: flex;
-            flex-grow: 1;
-            position: relative;
-            overflow: hidden;
-        }
-        #sidebar {
-            width: 280px;
-            background-color: #f8f9fa;
-            border-right: 1px solid #ddd;
-            padding: 15px;
-            box-sizing: border-box;
-            display: none;
-            flex-direction: column;
-            gap: 12px;
-            overflow-y: auto;
-            z-index: 999;
-        }
-        #sidebar h3 {
-            margin-top: 0;
-            color: #2c3e50;
-            font-size: 1.1rem;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 8px;
-        }
-        .filter-btn {
-            padding: 10px;
-            background-color: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            text-align: left;
-            cursor: pointer;
-            font-weight: bold;
-            color: #334155;
-            transition: all 0.2s;
-        }
-        .filter-btn:hover {
-            background-color: #e2e8f0;
-            border-color: #94a3b8;
-        }
-        .filter-btn.active {
-            background-color: #1b365d;
-            color: white;
-            border-color: #1b365d;
-        }
         #map {
             flex-grow: 1;
             height: 100%;
+            width: 100%;
         }
-
         @media (max-width: 768px) {
             header {
                 flex-direction: column;
@@ -122,13 +73,6 @@
             .search-container {
                 width: 100%;
                 justify-content: center;
-            }
-            .main-container {
-                flex-direction: column;
-            }
-            #sidebar {
-                width: 100%;
-                max-height: 180px;
             }
         }
     </style>
@@ -147,47 +91,23 @@
         </div>
     </header>
 
-    <div class="main-container">
-        <div id="sidebar">
-            <h3>Filter Aid Categories</h3>
-            <button class="filter-btn active" onclick="filterCategory('all', this)">🌐 Show All Resources</button>
-            <button class="filter-btn" onclick="filterCategory('food', this)">🍞 Food Pantries</button>
-            <button class="filter-btn" onclick="filterCategory('water', this)">💧 Water Access</button>
-            <button class="filter-btn" onclick="filterCategory('shelter', this)">🏠 Emergency Shelters</button>
-            <button class="filter-btn" onclick="filterCategory('faith', this)">⛪ Faith & Community Support</button>
-        </div>
-
-        <div id="map"></div>
-    </div>
+    <div id="map"></div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
+        // Initialize map centered around Irving, TX
         var map = L.map('map').setView([32.8140, -96.9489], 12);
 
-        var roadLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // Standard OpenStreetMap Tile Layer
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
-        });
-
-        var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 19,
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-        });
-
-        roadLayer.addTo(map);
-
-        var baseMaps = {
-            "🗺️ Road View": roadLayer,
-            "🛰️ Satellite View": satelliteLayer
-        };
-        L.control.layers(baseMaps).addTo(map);
+        }).addTo(map);
 
         var searchCircle = null;
         var markersLayer = L.layerGroup().addTo(map);
-        var allMarkersData = [];
-        var currentFilter = 'all';
 
         function searchLocation() {
             var query = document.getElementById('zipInput').value.trim();
@@ -202,17 +122,15 @@
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
                     if (data && data.length > 0) {
-                        var result = data[0];
-                        var lat = parseFloat(result.lat);
-                        var lon = parseFloat(result.lon);
+                        var lat = parseFloat(data[0].lat);
+                        var lon = parseFloat(data[0].lon);
                         var center = [lat, lon];
-
-                        document.getElementById('sidebar').style.display = 'flex';
 
                         if (searchCircle) {
                             map.removeLayer(searchCircle);
                         }
 
+                        // Draw 5-mile radius (8046 meters)
                         searchCircle = L.circle(center, {
                             radius: 8046,
                             color: "#1b365d",
@@ -225,13 +143,13 @@
 
                         L.popup()
                             .setLatLng(center)
-                            .setContent("<b>Searched area:</b> " + query + "<br>Fetched within a radius of 5 miles<br><span style='color: #64748b; font-style: italic;'>Please wait for results to load!</span>")
+                            .setContent("<b>Searched area:</b> " + query + "<br>Fetched within a radius of 5 miles")
                             .openOn(map);
 
-                        fetchOverpassData(lat, lon, 8046, query);
+                        fetchOverpassData(lat, lon, 8046);
 
                     } else {
-                        alert("Location not found in the US. Please try a valid ZIP code or city.");
+                        alert("Location not found. Please try a valid US ZIP code or city.");
                     }
                 })
                 .catch(function(error) {
@@ -240,106 +158,16 @@
                 });
         }
 
-        function getResourceInfo(tags) {
-            tags = tags || {};
-            
-            var service = "Community Resource";
-            var defaultName = "Public Community Facility";
-            var emoji = "📍";
-            var category = "community";
-
-            var amenity = tags.amenity ? tags.amenity.toLowerCase() : "";
-            var socialFacility = tags.social_facility ? tags.social_facility.toLowerCase() : "";
-            var religion = tags.religion ? tags.religion.toLowerCase() : "";
-            var rawName = tags.name || "";
-            var nameLower = rawName.toLowerCase();
-
-            if (amenity === "drinking_water" || amenity === "water_point") {
-                service = "💧 Water Access";
-                defaultName = "Public Drinking Water Station";
-                emoji = "💧";
-                category = "water";
-            } else if (amenity === "food_pantry" || socialFacility === "food_bank") {
-                service = "🍞 Food Support";
-                defaultName = "Community Food Pantry / Bank";
-                emoji = "🍞";
-                category = "food";
-            } else if (amenity === "shelter" || socialFacility === "shelter") {
-                service = "🏠 Emergency Shelter";
-                defaultName = "Community Shelter";
-                emoji = "🏠";
-                category = "shelter";
-            } else if (amenity === "place_of_worship") {
-                category = "faith";
-                if (religion === "buddhist" || religion === "taoist" || 
-                    nameLower.includes("buddhist") || nameLower.includes("temple") || 
-                    nameLower.includes("meditation") || nameLower.includes("pagoda") || 
-                    nameLower.includes("zen") || nameLower.includes("dharma") || nameLower.includes("lianhua")) {
-                    service = "🪷 Buddhist / Eastern Temple Support";
-                    defaultName = "Temple / Meditation Center";
-                    emoji = "🪷";
-                } else if (religion === "hindu" || nameLower.includes("hindu") || nameLower.includes("mandir")) {
-                    service = "🕉️ Hindu Temple Support";
-                    defaultName = "Hindu Temple";
-                    emoji = "🕉️";
-                } else if (religion === "muslim" || nameLower.includes("mosque") || nameLower.includes("masjid") || nameLower.includes("islamic")) {
-                    service = "☪️ Mosque Support";
-                    defaultName = "Islamic Center / Mosque";
-                    emoji = "☪️";
-                } else if (religion === "sikh" || nameLower.includes("gurdwara") || nameLower.includes("sikh")) {
-                    service = "☬ Gurdwara Community Kitchen";
-                    defaultName = "Sikh Gurdwara";
-                    emoji = "☬";
-                } else if (religion === "jewish" || nameLower.includes("synagogue") || nameLower.includes("chabad") || nameLower.includes("congregation")) {
-                    service = "✡️ Jewish Community Support";
-                    defaultName = "Synagogue / Community Center";
-                    emoji = "✡️";
-                } else if (religion === "christian" || nameLower.includes("church") || nameLower.includes("baptist") || 
-                         nameLower.includes("chapel") || nameLower.includes("cathedral") || nameLower.includes("parish") || 
-                         nameLower.includes("methodist") || nameLower.includes("lutheran") || nameLower.includes("presbyterian")) {
-                    service = "✝️ Christian Church Support";
-                    defaultName = "Church / Christian Center";
-                    emoji = "✝️";
-                } else {
-                    service = "🙏 Faith-Based Community Support";
-                    defaultName = "House of Worship / Faith Center";
-                    emoji = "🙏";
-                }
-            } else if (amenity === "community_centre") {
-                service = "🤝 Community Aid Center";
-                defaultName = "Community Center";
-                emoji = "🤝";
-                category = "community";
-            }
-
-            var name = rawName ? (emoji + " " + rawName) : (emoji + " " + defaultName);
-            return { name: name, service: service, category: category };
-        }
-
-        function renderMarkers() {
-            markersLayer.clearLayers();
-            allMarkersData.forEach(function(item) {
-                if (currentFilter === 'all' || item.category === currentFilter) {
-                    markersLayer.addLayer(item.marker);
-                }
-            });
-        }
-
-        function filterCategory(category, btnElement) {
-            currentFilter = category;
-            
-            var buttons = document.querySelectorAll('.filter-btn');
-            buttons.forEach(function(btn) { btn.classList.remove('active'); });
-            btnElement.classList.add('active');
-
-            renderMarkers();
-        }
-
-        function fetchOverpassData(lat, lon, radiusMeters, searchQuery) {
-            allMarkersData = [];
+        function fetchOverpassData(lat, lon, radiusMeters) {
             markersLayer.clearLayers();
 
-            var overpassQuery = '[out:json][timeout:25];(node["amenity"="social_facility"](around:' + radiusMeters + ',' + lat + ',' + lon + ');node["social_facility"="food_bank"](around:' + radiusMeters + ',' + lat + ',' + lon + ');node["amenity"="food_pantry"](around:' + radiusMeters + ',' + lat + ',' + lon + ');node["amenity"="drinking_water"](around:' + radiusMeters + ',' + lat + ',' + lon + ');node["amenity"="water_point"](around:' + radiusMeters + ',' + lat + ',' + lon + ');node["amenity"="shelter"](around:' + radiusMeters + ',' + lat + ',' + lon + ');node["amenity"="place_of_worship"](around:' + radiusMeters + ',' + lat + ',' + lon + ');node["amenity"="community_centre"](around:' + radiusMeters + ',' + lat + ',' + lon + '););out body;';
+            var overpassQuery = '[out:json][timeout:25];(' +
+                'node["amenity"="food_pantry"](around:' + radiusMeters + ',' + lat + ',' + lon + ');' +
+                'node["social_facility"="food_bank"](around:' + radiusMeters + ',' + lat + ',' + lon + ');' +
+                'node["amenity"="drinking_water"](around:' + radiusMeters + ',' + lat + ',' + lon + ');' +
+                'node["amenity"="shelter"](around:' + radiusMeters + ',' + lat + ',' + lon + ');' +
+                'node["amenity"="place_of_worship"](around:' + radiusMeters + ',' + lat + ',' + lon + ');' +
+                ');out body;';
 
             var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
 
@@ -350,42 +178,22 @@
                         data.elements.forEach(function(element) {
                             if (element.lat && element.lon) {
                                 var tags = element.tags || {};
-                                var info = getResourceInfo(tags);
+                                var name = tags.name || "Community Resource";
+                                var amenity = tags.amenity || "facility";
                                 
-                                var houseNo = tags["addr:housenumber"] || "";
-                                var street = tags["addr:street"] || "";
-                                var city = tags["addr:city"] || "";
-                                var state = tags["addr:state"] || "";
-                                var postcode = tags["addr:postcode"] || "";
-                                
-                                var address = (houseNo ? houseNo + " " : "") + street + (city ? ", " + city : "") + (state ? ", " + state : "") + (postcode ? " " + postcode : "");
-                                if (!street) {
-                                    address = "GPS Location (Tap walking directions below)";
-                                }
-
                                 var navUrl = "https://www.google.com/maps/dir/?api=1&destination=" + element.lat + "," + element.lon + "&travelmode=walking";
 
                                 var marker = L.marker([element.lat, element.lon]);
                                 marker.bindPopup(
-                                    '<b>Name:</b> ' + info.name + '<br>' +
-                                    '<b>Address:</b> ' + address + '<br>' +
-                                    '<b>Location:</b> ' + element.lat.toFixed(5) + ', ' + element.lon.toFixed(5) + '<br>' +
-                                    '<b>Service:</b> ' + info.service + '<br>' +
-                                    '<a href="' + navUrl + '" target="_blank" style="color: #27ae60; font-weight: bold; text-decoration: underline;">Open Walking Directions</a>'
+                                    '<b>' + name + '</b><br>' +
+                                    'Type: ' + amenity + '<br>' +
+                                    '<a href="' + navUrl + '" target="_blank" style="color: #27ae60; font-weight: bold;">Walking Directions</a>'
                                 );
-
-                                allMarkersData.push({
-                                    marker: marker,
-                                    category: info.category
-                                });
+                                markersLayer.addLayer(marker);
                             }
                         });
-                        renderMarkers();
                     } else {
-                        L.popup()
-                            .setLatLng([lat, lon])
-                            .setContent("<b>Search Center:</b> " + searchQuery + "<br><i>No non-profit aid nodes mapped within this 5mi radius. Try a major metro area!</i>")
-                            .openOn(map);
+                        console.log("No nodes found in this radius.");
                     }
                 })
                 .catch(function(error) {
