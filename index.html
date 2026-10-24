@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Community Food & Water Locator - By Aishwarya Reddy Nalla</title>
+    <title>The Oasis Project — Community Aid & Relief Locator</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -29,6 +29,7 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 10px;
+            z-index: 1000;
         }
         .header-title h1 {
             font-size: 1.4rem;
@@ -86,8 +87,8 @@
 
     <header>
         <div class="header-title">
-            <h1>Food & Water Locator</h1>
-            <p>Find nearby pantries and clean water sources instantly</p>
+            <h1>The Oasis Project</h1>
+            <p>Direct humanitarian access for food, water, and emergency support</p>
         </div>
         
         <div class="search-container">
@@ -105,10 +106,26 @@
         // 1. Initialize map centered around Irving, TX
         var map = L.map('map').setView([32.8140, -96.9489], 12);
 
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // 2. Base Tile Layers (Road View & Satellite View)
+        var roadLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+        });
+
+        var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS Community'
+        });
+
+        // Set default view to Road View
+        roadLayer.addTo(map);
+
+        // Add layer switcher control to top-right
+        var baseMaps = {
+            "🗺️ Road View": roadLayer,
+            "🛰️ Satellite View": satelliteLayer
+        };
+        L.control.layers(baseMaps, { position: 'topright' }).addTo(map);
 
         var searchCircle = null;
         var markersLayer = L.layerGroup().addTo(map);
