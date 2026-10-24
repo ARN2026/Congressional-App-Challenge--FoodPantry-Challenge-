@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food & Water Locator</title>
+    <title>Community Food & Water Locator - By Aishwarya Reddy Nalla</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
+        .leaflet-control-attribution a[href*="leafletjs.com"] {
+            background-image: none !important;
+        }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -20,20 +23,19 @@
         header {
             background-color: #2c3e50;
             color: white;
-            padding: 12px 20px;
+            padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 10px;
-            z-index: 1000;
         }
         .header-title h1 {
-            font-size: 1.3rem;
+            font-size: 1.4rem;
             margin: 0;
         }
         .header-title p {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             margin: 2px 0 0 0;
             color: #bdc3c7;
         }
@@ -42,14 +44,14 @@
             gap: 6px;
         }
         .search-container input {
-            padding: 8px 10px;
+            padding: 6px 10px;
             width: 200px;
             border-radius: 4px;
             border: none;
             font-size: 0.9rem;
         }
         .search-container button {
-            padding: 8px 14px;
+            padding: 6px 12px;
             background-color: #27ae60;
             color: white;
             border: none;
@@ -62,10 +64,10 @@
         }
         #map {
             flex-grow: 1;
-            height: 100%;
             width: 100%;
         }
-        @media (max-width: 768px) {
+
+        @media (max-width: 600px) {
             header {
                 flex-direction: column;
                 text-align: center;
@@ -73,6 +75,9 @@
             .search-container {
                 width: 100%;
                 justify-content: center;
+            }
+            .search-container input {
+                width: 70%;
             }
         }
     </style>
@@ -97,7 +102,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // Initialize map centered around Irving, TX
+        // 1. Initialize map centered around Irving, TX
         var map = L.map('map').setView([32.8140, -96.9489], 12);
 
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -118,18 +123,19 @@
             var searchUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query + ', USA');
 
             fetch(searchUrl)
-                .then(function(response) { return response.json(); })
-                .then(function(data) {
+                .then(response => response.json())
+                .then(data => {
                     if (data && data.length > 0) {
-                        var lat = parseFloat(data[0].lat);
-                        var lon = parseFloat(data[0].lon);
+                        var result = data[0];
+                        var lat = parseFloat(result.lat);
+                        var lon = parseFloat(result.lon);
                         var center = [lat, lon];
 
                         if (searchCircle) {
                             map.removeLayer(searchCircle);
                         }
 
-                        // Draw 5-mile radius (8046 meters)
+                        // Draw a 5-mile radius search circle (8046 meters)
                         searchCircle = L.circle(center, {
                             radius: 8046,
                             color: "#1b365d",
@@ -142,22 +148,22 @@
 
                         L.popup()
                             .setLatLng(center)
-                            .setContent("<b>Searched area:</b> " + query + "<br>Fetched within a radius of 5 miles")
+                            .setContent("<b>Searched area:</b> " + query + "<br>Fetched within a radius of 5 miles<br><span style='color: #64748b; font-style: italic;'>Please wait for results to load!</span>")
                             .openOn(map);
 
-                        fetchOverpassData(lat, lon, 8046);
+                        fetchOverpassData(lat, lon, 8046, query);
 
                     } else {
-                        alert("Location not found. Please try a valid US ZIP code or city.");
+                        alert("Location not found in the US. Please try a valid ZIP code or city.");
                     }
                 })
-                .catch(function(error) {
+                .catch(error => {
                     console.error('Error fetching location:', error);
                     alert("Error connecting to search service.");
                 });
         }
 
-        // Friendly resource categorization with emojis and human-readable names
+        // Universal Emojis & Human-Readable Service Mapping
         function getResourceInfo(tags) {
             tags = tags || {};
             var amenity = tags.amenity ? tags.amenity.toLowerCase() : "";
@@ -171,7 +177,7 @@
             if (amenity === "drinking_water" || amenity === "water_point") {
                 service = "💧 Water Access";
                 emoji = "💧";
-            } else if (amenity === "food_pantry" || amenity === "food_bank") {
+            } else if (amenity === "food_pantry" || amenity === "food_bank" || tags.social_facility === "food_bank") {
                 service = "🍞 Food Support";
                 emoji = "🍞";
             } else if (amenity === "shelter") {
@@ -208,24 +214,31 @@
             };
         }
 
-        function fetchOverpassData(lat, lon, radiusMeters) {
+        function fetchOverpassData(lat, lon, radiusMeters, searchQuery) {
             markersLayer.clearLayers();
 
-            var overpassQuery = '[out:json][timeout:25];(' +
-                'node["amenity"="food_pantry"](around:' + radiusMeters + ',' + lat + ',' + lon + ');' +
-                'node["amenity"="drinking_water"](around:' + radiusMeters + ',' + lat + ',' + lon + ');' +
-                'node["amenity"="shelter"](around:' + radiusMeters + ',' + lat + ',' + lon + ');' +
-                'node["amenity"="place_of_worship"](around:' + radiusMeters + ',' + lat + ',' + lon + ');' +
-                'node["amenity"="community_centre"](around:' + radiusMeters + ',' + lat + ',' + lon + ');' +
-                ');out body;';
+            var overpassQuery = `
+                [out:json][timeout:25];
+                (
+                  node["amenity"="social_facility"](around:${radiusMeters},${lat},${lon});
+                  node["social_facility"="food_bank"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="food_pantry"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="drinking_water"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="water_point"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="shelter"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="place_of_worship"](around:${radiusMeters},${lat},${lon});
+                  node["amenity"="community_centre"](around:${radiusMeters},${lat},${lon});
+                );
+                out body;
+            `;
 
             var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
 
             fetch(url)
-                .then(function(response) { return response.json(); })
-                .then(function(data) {
+                .then(response => response.json())
+                .then(data => {
                     if (data && data.elements && data.elements.length > 0) {
-                        data.elements.forEach(function(element) {
+                        data.elements.forEach(element => {
                             if (element.lat && element.lon) {
                                 var info = getResourceInfo(element.tags);
                                 var latVal = element.lat.toFixed(5);
@@ -236,16 +249,21 @@
                                 var marker = L.marker([element.lat, element.lon]);
                                 marker.bindPopup(
                                     '<b>' + info.name + '</b><br>' +
-                                    'Type: ' + info.service + '<br>' +
-                                    'GPS: ' + latVal + ', ' + lonVal + '<br><br>' +
+                                    '<strong>Service:</strong> ' + info.service + '<br>' +
+                                    '<strong>GPS:</strong> ' + latVal + ', ' + lonVal + '<br><br>' +
                                     '<a href="' + navUrl + '" target="_blank" style="color: #27ae60; font-weight: bold; text-decoration: underline;">🚶 Walking Directions</a>'
                                 );
                                 markersLayer.addLayer(marker);
                             }
                         });
+                    } else {
+                        L.popup()
+                            .setLatLng([lat, lon])
+                            .setContent("<b>Search Center:</b> " + searchQuery + "<br><i>No non-profit aid nodes mapped within this 5mi radius.</i>")
+                            .openOn(map);
                     }
                 })
-                .catch(function(error) {
+                .catch(error => {
                     console.error('Error fetching Overpass data:', error);
                 });
         }
