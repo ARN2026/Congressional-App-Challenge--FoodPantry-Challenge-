@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Oasis Project — Community Aid & Relief Locator</title>
+    <title>Community Food & Water Locator - By Aishwarya Reddy Nalla</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -29,7 +29,6 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 10px;
-            z-index: 1000;
         }
         .header-title h1 {
             font-size: 1.4rem;
@@ -87,8 +86,8 @@
 
     <header>
         <div class="header-title">
-            <h1>The Oasis Project</h1>
-            <p>Direct humanitarian access for food, water, and emergency support</p>
+            <h1>Food & Water Locator</h1>
+            <p>Find nearby pantries and clean water sources instantly</p>
         </div>
         
         <div class="search-container">
@@ -103,10 +102,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // Initialize map centered around Irving, TX
+        // 1. Initialize map centered around Irving, TX
         var map = L.map('map').setView([32.8140, -96.9489], 12);
 
-        // Standard OpenStreetMap tile layer
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
