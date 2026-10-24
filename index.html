@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Community Food & Water Locator - By Aishwarya Reddy Nalla</title>
+    <title>The Oasis Project — Community Aid & Relief Locator</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -29,6 +29,7 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 10px;
+            z-index: 1000;
         }
         .header-title h1 {
             font-size: 1.4rem;
@@ -62,9 +63,60 @@
         .search-container button:hover {
             background-color: #219653;
         }
-        #map {
+        .main-container {
+            display: flex;
             flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        #map {
             width: 100%;
+            height: 100%;
+        }
+
+        /* Collapsible Legend Banner (Bottom Left) */
+        #legend-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            max-width: 280px;
+            overflow: hidden;
+            font-size: 0.85rem;
+            color: #334155;
+        }
+        #legend-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            user-select: none;
+        }
+        #legend-header:hover {
+            background-color: #1a252f;
+        }
+        #legend-body {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background-color: #f8fafc;
+        }
+        #legend-body.hidden {
+            display: none;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         @media (max-width: 600px) {
@@ -79,6 +131,11 @@
             .search-container input {
                 width: 70%;
             }
+            #legend-container {
+                bottom: 10px;
+                left: 10px;
+                max-width: 240px;
+            }
         }
     </style>
 </head>
@@ -86,8 +143,8 @@
 
     <header>
         <div class="header-title">
-            <h1>Food & Water Locator</h1>
-            <p>Find nearby pantries and clean water sources instantly</p>
+            <h1>The Oasis Project</h1>
+            <p>Direct humanitarian access for food, water, and emergency support</p>
         </div>
         
         <div class="search-container">
@@ -96,15 +153,33 @@
         </div>
     </header>
 
-    <div id="map"></div>
+    <div class="main-container">
+        <div id="map"></div>
+
+        <!-- Collapsible Emoji Legend -->
+        <div id="legend-container">
+            <div id="legend-header" onclick="toggleLegend()">
+                <span>🗺️ Resource Legend</span>
+                <span id="legend-arrow">▲</span>
+            </div>
+            <div id="legend-body" class="hidden">
+                <div class="legend-item"><span>🍞</span> <strong>Food Support</strong> (Pantry / Bank)</div>
+                <div class="legend-item"><span>💧</span> <strong>Water Access</strong> (Drinking Point)</div>
+                <div class="legend-item"><span>🏠</span> <strong>Emergency Shelter</strong></div>
+                <div class="legend-item"><span>✝️ ☪️ 🕉️ 🪷 ☬ ✡️</span> <strong>Faith Aid</strong></div>
+                <div class="legend-item"><span>🤝</span> <strong>Community Center</strong></div>
+            </div>
+        </div>
+    </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // 1. Initialize map centered around Irving, TX
+        // Initialize map centered around Irving, TX
         var map = L.map('map').setView([32.8140, -96.9489], 12);
 
+        // Standard OpenStreetMap tile layer
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
@@ -112,6 +187,19 @@
 
         var searchCircle = null;
         var markersLayer = L.layerGroup().addTo(map);
+
+        // Toggle Legend Visibility
+        function toggleLegend() {
+            var body = document.getElementById('legend-body');
+            var arrow = document.getElementById('legend-arrow');
+            if (body.classList.contains('hidden')) {
+                body.classList.remove('hidden');
+                arrow.textContent = '▼';
+            } else {
+                body.classList.add('hidden');
+                arrow.textContent = '▲';
+            }
+        }
 
         function searchLocation() {
             var query = document.getElementById('zipInput').value.trim();
